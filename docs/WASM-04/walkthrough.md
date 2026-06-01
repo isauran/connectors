@@ -13,7 +13,11 @@ This document summarizes the changes, architecture, and verification results for
 4. **Snapshot & Restore Mechanism**:
    - Implemented checkpointing: the WASM module halts and asks the Go Host to dump its linear memory (`[]byte`) to disk.
    - Designed a recovery routine where a brand new, clean WASM instance is spawned, its linear memory is overwritten with the snapshot, and the execution is resumed from the last saved state machine step.
-5. **Scaffolding and Automation**:
+5. **Real-world Backend Examples**:
+   - Created a realistic backend ETL pipeline example in [durable-wasm/examples/process-csv](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/process-csv).
+   - The worker wraps the low-level `stream_data` host function into a standard `io.Reader` and `io.Writer` interface, enabling the use of Go's built-in `encoding/csv` and `encoding/json` streaming libraries.
+   - Streams mock CSV users from the host, validates emails and parse amounts, transforms them into target JSON records, and posts them back chunk-by-chunk with strict $O(1)$ RAM usage.
+6. **Scaffolding and Automation**:
    - Written a custom [Makefile](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/Makefile) to build the worker, run the host orchestrator, clean build artifacts, and generate a minimal scratch-based Docker image.
    - Prepared [Dockerfile](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/host/Dockerfile) utilizing multi-stage static builds deployed on `scratch`.
 
@@ -78,10 +82,59 @@ PASS
 ok  	github.com/nativebpm/connectors/durable-wasm/host/durable	0.633s
 ```
 
-### Manual Demo Verification
-Running `make run` executes the interactive orchestrator demo:
-1. **Run 1**: The worker executed Step 0, called `checkpoint`, and the host successfully saved a `131KB` linear memory snapshot before aborting execution with a simulated crash trap.
-2. **Run 2**: The host initialized a fresh, clean WASM instance, read `snapshot.bin` off the disk, restored it directly to WASM memory, and resumed execution.
-3. **Stream Verification**: The worker resumed from Step 1, initiated a download stream (GET /download), transformed the data (lowercase to uppercase), and streamed it back via an upload pipe (POST /upload).
-4. **Mock Server Statistics**: The mock server verified receipt of all `42,500 bytes` successfully, with 100% of lowercase letters properly capitalized.
-5. **Finalization**: The worker transitioned to Step 2, logged final stats, and completed at Step 3 returning `Result: 1` successfully.
+### CSV Processing Pipeline Example (Backend Logic Demo)
+We verified the ETL pipeline example by running `make run-csv-example` inside `durable-wasm/`:
+```bash
+$ make run-csv-example
+Building WASM worker for CSV processing example using TinyGo...
+tinygo build -o worker/worker.wasm -target=wasi worker/main.go
+Running CSV processing example host...
+cd host && go run main.go
+[HOST] Starting CSV-to-JSON Pipeline Durable Execution Example...
+[MOCK SERVER] Listening on http://localhost:18082
+
+--- RUN 1: Executing WASM CSV pipeline with simulated crash ---
+[ENGINE] Invoking entrypoint 'run'...
+[CSV WORKER] Step 0: Initializing CSV processor...
+[CSV WORKER] Step 0 completed. Saving checkpoint.
+[ENGINE] 'checkpoint' invoked for instance 'csv-worker-instance'
+[ENGINE] Snapshot successfully saved (131072 bytes)
+[ENGINE] Simulating host crash. Aborting WASM execution.
+[HOST] Execution successfully suspended/crashed: error while executing at wasm backtrace:
+    0: 0x4afa5 - main!run
+note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+
+Caused by:
+    simulated_host_crash
+[HOST] Verified that snapshot file was written to disk.
+
+--- RUN 2: Restoring from snapshot and processing CSV stream ---
+[ENGINE] Found saved snapshot for 'csv-worker-instance'. Restoring memory...
+[ENGINE] Memory snapshot successfully restored.
+[ENGINE] Invoking entrypoint 'run'...
+[CSV WORKER] Step 1: Processing CSV stream and generating JSON output...
+[ENGINE] GET Request to http://localhost:18082/download (Stream-first)
+[ENGINE] GET Stream EOF. Closing response.
+[ENGINE] POST Request to http://localhost:18082/upload (Stream-first via io.Pipe)
+[MOCK SERVER] Received transformed JSON stream:
+{"id":"1","name":"Alice Johnson","email":"alice@example.com","amount":120.5,"status":"active"}
+{"id":"2","name":"Bob Smith","email":"bob-invalid-email","amount":250,"status":"invalid_email"}
+{"id":"3","name":"Charlie Brown","email":"charlie@example.com","amount":0,"status":"invalid_amount"}
+{"id":"4","name":"David Miller","email":"david@example.com","amount":450,"status":"active"}
+[ENGINE] Closing upload stream (EOF). Waiting for response...
+{"id":"5","name":"Eve Adams","email":"eve@example.com","amount":90.25,"status":"active"}
+[ENGINE] POST completed successfully.
+[CSV WORKER] Step 1 completed. Saving checkpoint.
+[ENGINE] 'checkpoint' invoked for instance 'csv-worker-instance'
+[ENGINE] Snapshot successfully saved (262144 bytes)
+[CSV WORKER] Step 2: Finalizing business validation...
+[CSV WORKER] Total valid records processed: 3
+[CSV WORKER] Sum of active user amounts: 660.75
+[CSV WORKER] Step 2 completed. Final checkpoint.
+[ENGINE] 'checkpoint' invoked for instance 'csv-worker-instance'
+[ENGINE] Snapshot successfully saved (262144 bytes)
+[CSV WORKER] Execution completed.
+[ENGINE] Execution completed. Result: 1
+
+[HOST] Durable WASM CSV pipeline example completed successfully.
+```
