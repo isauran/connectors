@@ -52,7 +52,7 @@ Executed by running `make run-csv-example` inside `durable-wasm/`. Parses and va
 Executed by running `make run-temporal-example` inside `durable-wasm/`. Demonstrates a multi-step math/processing activity that persists its progress securely on disk.
 
 ### Example 3: Camunda External Task
-Executed by running `make run-camunda-example` inside `durable-wasm/`. Validates multi-request interactions (inventory checking, payment capture) inside a single task process step using the BPMN process definition [process.bpmn](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda/bpmn/process.bpmn).
+Executed by running `make run-camunda-example` inside `durable-wasm/`. Deploys process definition [process.bpmn](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda/bpmn/process.bpmn) to local Camunda Platform 7 REST API, starts a process instance, polls for tasks, and runs the WASM-based multi-step worker with crash/restore simulation.
 
 ### Example 4: Gotenberg & Telegram Document Pipeline
 Executed by running `make run-gotenberg-telegram-example` inside `durable-wasm/`. Downloads a DOCX document from Telegram Bot API, converts it via Gotenberg, and streams the PDF back to the user chat.
