@@ -1,74 +1,119 @@
-# Implementation Plan - WASM Durable Execution Engine MVP
+# Implementation Plan - Разделение Camunda и Temporal примеров
 
-This document describes the plan for creating a WebAssembly-based Durable Execution Engine (WASM-04).
+Этот план описывает процесс разделения демонстрационного примера `camunda-temporal` на два независимых примера: `temporal` и `camunda`. Это позволит продемонстрировать чистую интеграцию WebAssembly Durable Execution Engine с каждой из систем оркестрации отдельно.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> - **TinyGo Compiler**: TinyGo must be installed on the local machine (`brew install tinygo`). If it's not present, we will automate its installation during the implementation phase.
-> - **Wasmtime-Go Dependency**: We will use the official `github.com/bytecodealliance/wasmtime-go/v20` library. It requires CGO to compile.
-> - **Simulation of Failure**: We will demonstrate durability by running the WASM module, executing a checkpoint, simulating a host crash/restart, restoring the linear memory snapshot, and continuing execution from the last saved state.
+> - **Схема BPMN для Camunda**: Новый пример `camunda` будет содержать очищенную BPMN-схему [process.bpmn](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda/bpmn/process.bpmn) только с шагами для Camunda External Task.
+> - **Гибридный подход**: Оба примера продолжат использовать рекомендованный гибридный подход: временный снапшот памяти воркера во время выполнения транзакции и сброс финальных данных в классическую БД (Mock API/файл JSON) по завершении с очисткой снапшота.
 
 ## Proposed Changes
 
-We will create a new directory `durable-wasm` in the root of the repository containing the host orchestrator and the WASM worker.
+Мы удалим пример `camunda-temporal` и создадим вместо него две независимые директории в `durable-wasm/examples/`.
 
 ---
 
-### Root Workspace Configuration
+### Root Workspace & Build Configuration
 
 #### [MODIFY] [go.work](file:///Users/user/github.com/nativebpm/connectors/go.work)
-Add paths to the new host and worker modules:
-- `./durable-wasm/host`
-- `./durable-wasm/worker`
+* Удалить старые пути:
+  - `./durable-wasm/examples/camunda-temporal/host`
+  - `./durable-wasm/examples/camunda-temporal/worker`
+* Добавить новые пути:
+  - `./durable-wasm/examples/temporal/host`
+  - `./durable-wasm/examples/temporal/worker`
+  - `./durable-wasm/examples/camunda/host`
+  - `./durable-wasm/examples/camunda/worker`
+
+#### [MODIFY] [Makefile](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/Makefile)
+* Заменить цель `run-camunda-temporal-example` на `run-temporal-example` и `run-camunda-example`.
+* Обновить цель `clean` для очистки артефактов в новых папках.
 
 ---
 
-### Component: Durable WASM Engine
+### Component: Temporal Activity Example (`examples/temporal`)
 
-#### [NEW] [Makefile](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/Makefile)
-Automate building the WASM worker, running the host, executing integration tests, and building the scratch Docker image.
+Демонстрирует запуск WASM-кода в качестве долгоживущей Activity в Temporal, поддерживающей промежуточные чекпоинты (Heartbeats / Progress Restoration).
 
-#### [NEW] [worker/go.mod](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/worker/go.mod)
-Go module file for the TinyGo WASM worker.
+#### [NEW] [Makefile](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/temporal/Makefile)
+* Автоматизация сборки `worker/worker.wasm` через TinyGo и запуска `host/main.go`.
 
-#### [NEW] [worker/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/worker/main.go)
-Implementation of the business-logic worker in Go (compiled via TinyGo to WASM).
-- Implements a state machine to track step execution.
-- Imports `checkpoint` and `stream_data` host functions.
-- Processes data in chunks of 4KB to maintain $O(1)$ memory consumption.
+#### [NEW] [worker/go.mod](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/temporal/worker/go.mod)
+* Go module для TinyGo воркера.
 
-#### [NEW] [host/go.mod](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/host/go.mod)
-Go module file for the orchestrator host app, requiring `wasmtime-go`.
+#### [NEW] [worker/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/temporal/worker/main.go)
+* Специфичный для Temporal воркер. Реализует многошаговые тяжелые вычисления (например, скоринг или процессинг):
+  - Step 0: Инициализация Activity.
+  - Step 1: Вызов внешнего API для скачивания расчетных параметров с чекпоинтом.
+  - Step 2: Выполнение тяжелой калькуляции с чекпоинтом.
+  - Step 3: Сохранение финальных результатов калькуляции в БД хоста (гибридный подход) с чекпоинтом.
+  - Step 4: Завершение.
 
-#### [NEW] [host/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/host/main.go)
-Implementation of the Go orchestrator.
-- Sets up Wasmtime environment with WASI.
-- Implements `stream_data` host function using `io.Pipe` for $O(1)$ RAM upload/download.
-- Implements `checkpoint` host function to snapshot linear memory (`[]byte`) to a local file.
-- Spawns a test HTTP server to simulate external REST API endpoints (`/download` and `/upload`).
-- Orchestrates execution: runs worker, stops at checkpoint (simulated failure), initializes a clean WASM instance, restores memory, and continues execution.
+#### [NEW] [host/go.mod](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/temporal/host/go.mod)
+* Go module для Go хоста, импортирующий библиотеку `durable`.
 
-#### [NEW] [host/Dockerfile](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/host/Dockerfile)
-Multi-stage build Dockerfile:
-- Stage 1: Build Go host with `wasmtime-go` statically linked (using a base image containing required C libraries).
-- Stage 2: Deploy to a `scratch` container.
+#### [NEW] [host/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/temporal/host/main.go)
+* Эмулирует Temporal Activity Runner. 
+* Запускает WASM, имитирует краш на первом шаге, сохраняет снапшот `temporal-activity.bin`.
+* Перезапускает воркер, восстанавливает состояние из снапшота, выполняет до конца.
+* Сохраняет финальную запись в `database_temporal.json`, удаляет временный снапшот.
+
+#### [NEW] [.gitignore](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/temporal/.gitignore)
+* Игнорирование `.bin`, `.json` (кроме кода) и `worker.wasm`.
+
+---
+
+### Component: Camunda External Task Example (`examples/camunda`)
+
+Демонстрирует запуск WASM-кода в качестве воркера для Camunda External Task, управляемого схемой BPMN.
+
+#### [NEW] [Makefile](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda/Makefile)
+* Автоматизация сборки и запуска.
+
+#### [NEW] [bpmn/process.bpmn](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda/bpmn/process.bpmn)
+* BPMN-схема процесса Camunda. Содержит одну Service Task типа `external` с топиком `durable-wasm-task` (вместо разделения на шаги, которые были в предыдущей схеме).
+
+#### [NEW] [worker/go.mod](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda/worker/go.mod)
+* Go module для воркера.
+
+#### [NEW] [worker/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda/worker/main.go)
+* TinyGo воркер, реализующий логику обработки одной задачи Camunda в несколько шагов:
+  - Step 0: Инициализация задачи.
+  - Step 1: Проверка доступности товаров (Inventory Check) через HTTP API.
+  - Step 2: Списание средств (Payment Capture) через HTTP API.
+  - Step 3: Сохранение статуса заказа в Master-БД.
+  - Step 4: Завершение и возврат флага успеха в Camunda.
+
+#### [NEW] [host/go.mod](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda/host/go.mod)
+* Go module для хоста.
+
+#### [NEW] [host/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda/host/main.go)
+* Эмулирует Camunda External Task Client. Поддерживает Mock API-сервер для инвентаря, платежей и БД.
+* Выполняет прогон с симуляцией падения хоста, восстановлением памяти из `camunda-task.bin`, записью в `database_camunda.json` и очисткой снапшота.
+
+#### [NEW] [.gitignore](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda/.gitignore)
+
+---
+
+### [DELETE] [camunda-temporal](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda-temporal)
+* Полное удаление старой директории объединенного примера.
 
 ---
 
 ## Verification Plan
 
-### Automated Tests
-We will write an automated integration flow in `host/main.go` that:
-1. Starts the mock HTTP server.
-2. Runs the worker from scratch.
-3. Interrupts the worker at Step 1 and writes memory snapshot.
-4. Spawns a new clean Wasmtime instance, loads the snapshot, and executes again.
-5. Verifies that the data was fully processed, transformed, and uploaded to the mock server, matching the initial input data.
+### Automated Steps
+1. Запуск сборки и тестов обоих примеров:
+   ```bash
+   make -C durable-wasm/examples/temporal run
+   make -C durable-wasm/examples/camunda run
+   ```
+2. Проверка, что:
+   - Снапшоты создаются при сбое.
+   - Восстановление памяти проходит корректно (данные не теряются).
+   - Базы данных `database_temporal.json` и `database_camunda.json` создаются с финальным результатом.
+   - Снапшоты удаляются после успешного завершения.
 
-We will run:
-```bash
-make -C durable-wasm build
-make -C durable-wasm run
-```
-And verify that the logs show successful execution, crash simulation, memory restore, and finalization.
+### Manual Steps
+* Проверка компиляции TinyGo и форматирования кода с помощью `go fmt`.
