@@ -1,7 +1,7 @@
 ---
 task: SEC-01
-status: In Progress
-summary: Проработка безопасности интеграции с Camunda и Temporal для устранения зависимости от CVE.
+status: Completed
+summary: Реализовано шифрование Payload (Zero-Trust) и Codec Server для админки Temporal.
 ---
 
 # SEC-01: Безопасность интеграции с Camunda и Temporal (Защита от CVE)
