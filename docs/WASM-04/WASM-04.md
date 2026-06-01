@@ -1,6 +1,6 @@
 ---
 task: WASM-04
-status: In Progress
+status: Completed
 summary: Разработка MVP отказоустойчивого WASM-движка выполнения бизнес-логики с поддержкой snapshotting и O(1) RAM стриминга.
 ---
 
