@@ -36,7 +36,50 @@ Step 3: Completed    ---------->       Result: 1 (Complete)
 
 ## Validation & Verification
 
-We successfully ran the integration scenario via `make run` verifying the entire lifecycle:
+### Automated Unit Tests
+We developed a complete automated integration unit test [engine_test.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/host/durable/engine_test.go).
+Running `make test` outputs:
+```bash
+$ make test
+Building WASM worker using TinyGo...
+tinygo build -o worker/worker.wasm -target=wasi worker/main.go
+Running tests...
+cd host && go test -v ./...
+?   	github.com/nativebpm/connectors/durable-wasm/host	[no test files]
+=== RUN   TestDurableExecutionLifecycle
+[ENGINE] Invoking entrypoint 'run'...
+[WASM WORKER] Step 0: Starting initialization...
+[WASM WORKER] Step 0 completed. Initiating checkpoint.
+[ENGINE] 'checkpoint' invoked for instance 'test-worker-instance'
+[ENGINE] Snapshot successfully saved (131072 bytes)
+[ENGINE] Simulating host crash. Aborting WASM execution.
+[ENGINE] Found saved snapshot for 'test-worker-instance'. Restoring memory...
+[ENGINE] Memory snapshot successfully restored.
+[ENGINE] Invoking entrypoint 'run'...
+[WASM WORKER] Step 1: Processing data stream...
+[ENGINE] GET Request to http://localhost:18081/download (Stream-first)
+[ENGINE] GET Stream EOF. Closing response.
+[ENGINE] POST Request to http://localhost:18081/upload (Stream-first via io.Pipe)
+[WASM WORKER] Stream EOF. All data received.
+[ENGINE] Closing upload stream (EOF). Waiting for response...
+[ENGINE] POST completed successfully.
+[WASM WORKER] Step 1 completed. Initiating checkpoint.
+[ENGINE] 'checkpoint' invoked for instance 'test-worker-instance'
+[ENGINE] Snapshot successfully saved (262144 bytes)
+[WASM WORKER] Step 2: Finalizing business process...
+[WASM WORKER] Total bytes processed and transformed: 31
+[WASM WORKER] Step 2 completed. Initiating final checkpoint.
+[ENGINE] 'checkpoint' invoked for instance 'test-worker-instance'
+[ENGINE] Snapshot successfully saved (262144 bytes)
+[WASM WORKER] Execution already completed.
+[ENGINE] Execution completed. Result: 1
+--- PASS: TestDurableExecutionLifecycle (0.08s)
+PASS
+ok  	github.com/nativebpm/connectors/durable-wasm/host/durable	0.633s
+```
+
+### Manual Demo Verification
+Running `make run` executes the interactive orchestrator demo:
 1. **Run 1**: The worker executed Step 0, called `checkpoint`, and the host successfully saved a `131KB` linear memory snapshot before aborting execution with a simulated crash trap.
 2. **Run 2**: The host initialized a fresh, clean WASM instance, read `snapshot.bin` off the disk, restored it directly to WASM memory, and resumed execution.
 3. **Stream Verification**: The worker resumed from Step 1, initiated a download stream (GET /download), transformed the data (lowercase to uppercase), and streamed it back via an upload pipe (POST /upload).
