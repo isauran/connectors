@@ -30,8 +30,13 @@
 - Добавлен интеграционный тест сравнения `TestBPMNVSRealCamunda`. Этот тест:
   1. Запускает и выполняет схему `gateways.bpmn` с разветвлениями и шагом ожидания `UserTask` в реальном инстансе Camunda (через REST API и воркеры).
   2. Запускает ту же схему в нашем `bpmn.Engine`.
-  3. Сравнивает траекторию токенов, засыпание на UserTask, пробуждение после Correlation API и финальный статус завершения (Completed).
+  3. Сравнивает траекторию токенов, засыпание на UserTask, пробуждение после Correlation API и статус завершения (Completed).
   4. Доказывает 100% эквивалентность поведения.
+
+### 4. GitHub Actions (Релизы)
+
+В файле [.github/workflows/publish-module-release.yml](file:///Users/user/github.com/nativebpm/connectors/.github/workflows/publish-module-release.yml):
+- Упрощена логика шага проверки тега: теперь поддерживаются как аннотированные (annotated), так и обычные (lightweight) теги. При отсутствии сообщения аннотации подставляется автоматическое описание по умолчанию.
 
 ## Верификация
 
