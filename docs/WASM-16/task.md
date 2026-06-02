@@ -1,0 +1,26 @@
+# WASM-16: Checklist
+
+- [x] Удалить локальную мусорную директорию `heartbeat`
+- [x] Декомпозировать `durable-wasm/engine.go` на отдельные файлы:
+  - [x] Создать `durable-wasm/types.go`
+  - [x] Создать `durable-wasm/execution.go`
+  - [x] Создать `durable-wasm/session.go`
+  - [x] Отредактировать `durable-wasm/engine.go`
+- [x] Переименовать директорию `durable-wasm` в `wasman` с помощью Git
+- [x] Обновить конфигурацию модулей и сборки:
+  - [x] Обновить корневой `go.work`
+  - [x] Обновить `wasman/go.mod`
+- [x] Обновить имена пакетов в файлах модуля `wasman`:
+  - [x] `wasman/types.go`
+  - [x] `wasman/execution.go`
+  - [x] `wasman/session.go`
+  - [x] `wasman/engine.go`
+  - [x] `wasman/fs_store.go`
+  - [x] `wasman/s3_store.go`
+  - [x] `wasman/sdk.go`
+  - [x] `wasman/sdk_stub.go`
+  - [x] `wasman/engine_test.go`
+  - [x] `wasman/engine_bench_test.go`
+- [x] Обновить импорты во всех примерах (`wasman/examples/...`)
+- [x] Обновить Makefile, README.md, README.ru.md и документацию
+- [x] Запустить тесты и проверить работоспособность сборки
