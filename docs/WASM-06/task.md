@@ -1,0 +1,8 @@
+- [x] Инициализировать задачу WASM-06 в Semantic Store (docs/WASM-06/) и обновить docs/index.md
+- [x] Перенести engine.go и engine_test.go в корень durable-wasm/ и удалить durable.go
+- [x] Создать директорию примера durable-wasm/examples/simple/ и перенести туда демо-файлы (host, worker, Dockerfile)
+- [x] Скорректировать durable-wasm/Makefile и go.work
+- [x] Синхронизировать зависимости (go work sync, go mod tidy)
+- [x] Проверить unit-тесты ядра движка (make -C durable-wasm test)
+- [x] Запустить и проверить все примеры (simple, camunda, temporal, process-csv, gotenberg-telegram)
+- [x] Задокументировать изменения (walkthrough.md)
