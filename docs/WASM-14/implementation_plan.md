@@ -73,8 +73,8 @@
 #### [MODIFY] [examples/gotenberg-telegram/host/main_test.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/gotenberg-telegram/host/main_test.go)
 - Удалить встраивание SQL-схем и заменить инициализацию на `FileSnapshotStore`.
 
-#### [MODIFY] [examples/durable-s3/host/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/durable-s3/host/main.go)
-- Заменить использование SQLite на `FileSnapshotStore`.
+#### [DELETE] [examples/durable-s3](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/durable-s3)
+- Полное удаление устаревшего примера, использовавшего репликацию SQLite через Litestream.
 
 ---
 

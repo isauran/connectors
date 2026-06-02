@@ -7,7 +7,7 @@
 - `[x]` Update example `examples/temporal` (host/main.go) to use FileSnapshotStore
 - `[x]` Update example `examples/process-csv` (host/main_test.go) to use FileSnapshotStore
 - `[x]` Update example `examples/gotenberg-telegram` (host/main_test.go) to use FileSnapshotStore
-- `[x]` Update example `examples/durable-s3` (host/main.go) to use FileSnapshotStore
+- `[x]` Delete obsolete example `examples/durable-s3` entirely
 - `[x]` Clean up Makefile (remove AtlasGo and SQL schemas targets)
 - `[x]` Update README.md and README.ru.md
 - `[x]` Run `go mod tidy` to clean up dependencies

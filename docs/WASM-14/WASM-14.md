@@ -14,5 +14,5 @@ summary: Удаление поддержки SQLite и PostgreSQL, перехо�
 2. Удалены конфигурация AtlasGo и цели в `Makefile`.
 3. Локальный `FileSnapshotStore` перенесен из `engine.go` в отдельный файл `fs_store.go`.
 4. Реализован `inMemorySnapshotStore` в `engine_test.go` для быстрой и надежной работы юнит-тестов без записи на диск.
-5. Примеры обновлены на использование `FileSnapshotStore` в каталогах `snapshots/`.
+5. Пример `examples/durable-s3` (использовавший репликацию SQLite через Litestream) полностью удален. Остальные примеры переведены на использование `FileSnapshotStore` с сохранением снимков в каталогах `snapshots/`.
 6. Очищены неиспользуемые зависимости драйверов БД из `go.mod`.

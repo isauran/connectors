@@ -22,8 +22,9 @@
 4. **Очистка тестов бенчмарков:**
    - Бенчмарки в [engine_bench_test.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/engine_bench_test.go) переведены на `inMemorySnapshotStore`.
 
-5. **Обновление примеров:**
-   - Все практические примеры (`examples/camunda`, `examples/temporal`, `examples/process-csv`, `examples/gotenberg-telegram`, `examples/durable-s3`) переведены на использование `FileSnapshotStore`.
+5. **Обновление и удаление примеров:**
+   - Устаревший пример `examples/durable-s3` (демонстрировавший репликацию SQLite с помощью Litestream) полностью удален из репозитория.
+   - Остальные практические примеры (`examples/camunda`, `examples/temporal`, `examples/process-csv`, `examples/gotenberg-telegram`) переведены на использование `FileSnapshotStore`.
    - Данные чекпоинтов локально пишутся в каталог `snapshots/` (или `snapshots_test/` в тестовых сценариях), который автоматически очищается и создается перед каждым запуском.
    - Удалены встраивания схем `//go:embed sqlite.sql/postgres.sql`.
 
@@ -43,7 +44,6 @@
 $ go test ./...
 ok  	github.com/nativebpm/connectors/durable-wasm	1.540s
 ok  	github.com/nativebpm/connectors/durable-wasm/examples/camunda/host	3.800s
-?   	github.com/nativebpm/connectors/durable-wasm/examples/durable-s3/host	[no test files]
 ok  	github.com/nativebpm/connectors/durable-wasm/examples/gotenberg-telegram/host	1.295s
 ok  	github.com/nativebpm/connectors/durable-wasm/examples/process-csv/host	0.786s
 ?   	github.com/nativebpm/connectors/durable-wasm/examples/s3-store/host	[no test files]
