@@ -20,13 +20,13 @@ func main() {
 	slog.Info("[HOST] Starting BPMN + DMN + Wasman Durable Orchestration Example")
 
 	// 1. Read files
-	bpmnBytes, err := os.ReadFile("../process.bpmn")
+	bpmnBytes, err := os.ReadFile("../bpmn/process.bpmn")
 	if err != nil {
 		slog.Error("[HOST] Failed to read process.bpmn. Make sure to run inside host/ directory", "error", err)
 		os.Exit(1)
 	}
 
-	dmnBytes, err := os.ReadFile("../decision.dmn")
+	dmnBytes, err := os.ReadFile("../bpmn/decision.dmn")
 	if err != nil {
 		slog.Error("[HOST] Failed to read decision.dmn", "error", err)
 		os.Exit(1)
