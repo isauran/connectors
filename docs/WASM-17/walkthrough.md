@@ -9,7 +9,7 @@
    - Модуль подключен к Go-workspace в корневом файле `go.work`.
    - Внедрена зависимость от локального пакета `wasman`.
 
-2. **Парсер BPMN 2.0 (`bpmn/parser.go`)**:
+2. **Парсер BPMN 2.0 (`bpmn/bpmn.go`)**:
    - Реализована десериализация BPMN XML в структурированное дерево (StartEvent, EndEvent, ServiceTask, ExclusiveGateway, ParallelGateway, SequenceFlow).
    - Написана логика индексации элементов схемы процесса (`ParsedProcess`) для быстрого обхода графа.
 
