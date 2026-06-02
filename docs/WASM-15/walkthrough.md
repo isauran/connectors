@@ -19,7 +19,11 @@
    - Код воркера [examples/s3-store/worker/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/s3-store/worker/main.go) переписан на использование Fluent API пакета `durable` (`durable.NewWorkflow()`).
    - Код сократился, стал полностью линейным и очистился от `unsafe.Pointer` вызовов.
 
-4. **Результаты тестирования:**
+4. **Исправление .gitignore**:
+   - В [durable-wasm/.gitignore](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/.gitignore) добавлено исключение `!**/host/`, предотвращающее игнорирование исходного кода в каталогах хост-систем.
+   - Благодаря этому в репозиторий добавлен и закоммичен файл `durable-wasm/examples/s3-store/host/main.go`, который ранее ошибочно игнорировался Git.
+
+5. **Результаты тестирования:**
    - Воркер скомпилирован TinyGo в `.wasm` файл.
    - Тесты хост-системы и интеграционные тесты `go test ./...` успешно выполнены:
      ```bash

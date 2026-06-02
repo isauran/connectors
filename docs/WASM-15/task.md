@@ -8,3 +8,4 @@
 - `[x]` Add build tags `//go:build !wasm` to host files (`engine.go`, `s3_store.go`, `fs_store.go`)
 - `[x]` Refactor `examples/s3-store/worker/main.go` to use Fluent API of `durable` package
 - `[x]` Rebuild `s3-store` worker WebAssembly binary and run all tests to verify stability
+- `[x]` Fix `.gitignore` to prevent ignoring `host/` directories containing source files
