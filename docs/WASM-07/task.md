@@ -4,7 +4,7 @@
 - [x] Создать sqlite_store.go с реализацией SqliteSnapshotStore
 - [x] Обновить примеры (simple, camunda, process-csv, gotenberg-telegram, temporal) для использования нового API удаления и SqliteSnapshotStore
 - [x] Синхронизировать зависимости (go work sync, go mod tidy)
-- [x] Проверить unit-тесты ядра движка (make -C durable-wasm test)
+- [x] Перевести unit-тесты ядра движка на использование SQLite в памяти (:memory:) и убедиться, что тесты проходят успешно
 - [x] Протестировать пример simple локально с SQLite-базой
 - [x] Подготовить Docker-окружение для репликации через Litestream и SeaweedFS
 - [x] Перевести логирование на structured slog в engine.go и во всех примерах
