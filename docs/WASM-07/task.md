@@ -7,4 +7,7 @@
 - [x] Проверить unit-тесты ядра движка (make -C durable-wasm test)
 - [x] Протестировать пример simple локально с SQLite-базой
 - [x] Подготовить Docker-окружение для репликации через Litestream (docker-compose, Dockerfile)
+- [x] Перевести логирование на structured slog в engine.go и примере simple
+- [x] Добавить .gitignore для примера simple (игнорирование *.db, rclone_data и бинарников)
+- [x] Проверить репликацию и автоматическое восстановление базы данных из S3 при старте контейнера
 - [x] Задокументировать изменения (walkthrough.md)
