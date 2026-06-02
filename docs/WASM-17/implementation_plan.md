@@ -5,49 +5,46 @@
 ## User Review Required
 
 > [!IMPORTANT]
-> Новый модуль `bpmn` использует локальную зависимость от модуля `wasman` через `go.work`. При добавлении примеров мы скомпилируем WASM-воркеры с использованием Go 1.26 под `GOOS=js GOARCH=wasm` (или `GOOS=wasip1 GOARCH=wasm`) и настроим их запуск из хост-процесса.
+> Мы добавляем поддержку **Wait State (точек ожидания)** для `UserTask`. Это изменит структуру `ProcessInstance` (добавится поле `WaitingTokens []string`) и добавит новый метод корреляции `CompleteUserTask` в `bpmn.Engine`.
 
 ## Proposed Changes
 
-### 1. Конфигурация монорепозитория
+### 1. Расширение моделей BPMN 2.0
 
-#### [MODIFY] [go.work](file:///Users/user/github.com/nativebpm/connectors/go.work)
-Добавление пути `./bpmn` в список используемых модулей. *(Выполнено)*
-
-#### [NEW] [go.mod](file:///Users/user/github.com/nativebpm/connectors/bpmn/go.mod)
-Создание `go.mod` для модуля `bpmn`. *(Выполнено)*
-
----
-
-### 2. Разработка ядра BPMN 2.0
-
-#### [NEW] [parser.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/parser.go)
-Парсинг BPMN 2.0 XML в Go-структуры. *(Выполнено)*
-
-#### [NEW] [engine.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/engine.go)
-Движок выполнения процессов (Process Engine) с поддержкой шлюзов XOR и Parallel Gateways, а также интеграции с WASM-сессиями через динамический HTTP-сервер. *(Выполнено)*
+#### [MODIFY] [bpmn.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/bpmn.go)
+- [NEW] Добавление структуры `UserTask` для парсинга `<userTask>`.
+- Изменение структуры `Process`: добавление поля `UserTasks []UserTask`.
+- Изменение `indexProcess`: индексация `UserTask` в общую карту узлов `Nodes`.
 
 ---
 
-### 3. Разработка DMN движка
+### 2. Поддержка Wait State и Correlation в движке
 
-#### [NEW] [dmn.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/dmn.go)
-Парсинг и исполнение таблиц решений DMN с поддержкой Hit Policies (Unique, First, Any). *(Выполнено)*
+#### [MODIFY] [engine.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/engine.go)
+- Изменение `ProcessInstance`: добавление поля `WaitingTokens []string` для хранения токенов, заблокированных на шагах ожидания.
+- Изменение метода `Step()`: при обработке `UserTask` токен переносится из `ActiveTokens` в `WaitingTokens`, а шаг завершается (Wait State). Автоматического перехода дальше не происходит.
+- [NEW] Добавление метода `CompleteUserTask(instance *ProcessInstance, nodeID string, vars map[string]interface{}) error` для возобновления выполнения процесса внешним сигналом (разблокировка токена и переход на следующий шаг).
 
 ---
 
-### 4. Тестирование и примеры (Текущий этап)
+### 3. Тестирование
 
 #### [MODIFY] [engine_test.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/engine_test.go)
-Расширение тестов в `bpmn/`:
-- Добавление теста для Parallel Gateway Fork/Join.
-- Добавление теста для комплексного процесса с использованием переменных, шлюзов и обработкой ошибок DMN.
+- [NEW] Тест `TestBPMNUserTaskWaitState`: проверка, что процесс засыпает на `UserTask` и корректно возобновляется при вызове `CompleteUserTask` с обновлением переменных.
 
-#### [NEW] `bpmn/examples/orchestration`
-Создание сквозного примера применения BPMN + DMN + Wasman:
-- [NEW] [process.bpmn](file:///Users/user/github.com/nativebpm/connectors/bpmn/examples/orchestration/process.bpmn): BPMN XML-схема кредитного конвейера с шагом проверки правил (DMN) и WASM-воркерами (Wasman).
-- [NEW] [decision.dmn](file:///Users/user/github.com/nativebpm/connectors/bpmn/examples/orchestration/decision.dmn): DMN-таблица с правилами принятия решения по кредиту на основе возраста и доходов.
-- [NEW] [host/main.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/examples/orchestration/host/main.go): Go-хост, который запускает `bpmn.Engine`, выполняет шаги, эмулирует падение (crash) в процессе работы WASM-воркера, восстанавливает сессию из снапшота и продолжает исполнение.
+---
+
+## Verification Plan
+
+### Automated Tests
+1. Запуск тестов модуля `bpmn`:
+   ```bash
+   cd bpmn && go test -v ./...
+   ```
+2. Сборка и запуск сквозного примера:
+   ```bash
+   cd bpmn/examples/orchestration && make build && make run
+   ```ors/bpmn/examples/orchestration/host/main.go): Go-хост, который запускает `bpmn.Engine`, выполняет шаги, эмулирует падение (crash) в процессе работы WASM-воркера, восстанавливает сессию из снапшота и продолжает исполнение.
 - [NEW] [worker/main.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/examples/orchestration/worker/main.go): Go-код воркера, компилируемый в WASM, реализующий шаги процесса с помощью Durable SDK `wasman`.
 - [NEW] [Makefile](file:///Users/user/github.com/nativebpm/connectors/bpmn/examples/orchestration/Makefile): Скрипт сборки воркера в `.wasm` и запуска примера.
 - [NEW] [README.md](file:///Users/user/github.com/nativebpm/connectors/bpmn/examples/orchestration/README.md): Описание работы примера.

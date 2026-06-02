@@ -21,9 +21,11 @@ type Process struct {
 	StartEvents       []StartEvent       `xml:"startEvent"`
 	EndEvents         []EndEvent         `xml:"endEvent"`
 	ServiceTasks      []ServiceTask      `xml:"serviceTask"`
-	Tasks             []ServiceTask      `xml:"task"`
-	UserTasks         []ServiceTask      `xml:"userTask"`
-	SequenceFlows     []SequenceFlow     `xml:"sequenceFlow"`
+	Tasks                   []ServiceTask            `xml:"task"`
+	UserTasks               []UserTask               `xml:"userTask"`
+	ReceiveTasks            []ReceiveTask            `xml:"receiveTask"`
+	IntermediateCatchEvents []IntermediateCatchEvent `xml:"intermediateCatchEvent"`
+	SequenceFlows           []SequenceFlow           `xml:"sequenceFlow"`
 	ExclusiveGateways []ExclusiveGateway `xml:"exclusiveGateway"`
 	ParallelGateways  []ParallelGateway  `xml:"parallelGateway"`
 }
@@ -47,6 +49,25 @@ type ServiceTask struct {
 	Topic        string `xml:"topic,attr"`
 	WasmPath     string `xml:"wasmPath,attr"` // Custom attribute for wasman orchestration
 	CamundaTopic string `xml:"type,attr"`
+}
+
+// UserTask represents a BPMN user task (wait state).
+type UserTask struct {
+	ID   string `xml:"id,attr"`
+	Name string `xml:"name,attr"`
+}
+
+// ReceiveTask represents a BPMN receive task (wait state for a message).
+type ReceiveTask struct {
+	ID         string `xml:"id,attr"`
+	Name       string `xml:"name,attr"`
+	MessageRef string `xml:"messageRef,attr"`
+}
+
+// IntermediateCatchEvent represents an intermediate catch event (e.g. message wait).
+type IntermediateCatchEvent struct {
+	ID   string `xml:"id,attr"`
+	Name string `xml:"name,attr"`
 }
 
 // SequenceFlow represents a BPMN transition flow between two elements.
@@ -137,6 +158,12 @@ func indexProcess(p *Process) (*ParsedProcess, error) {
 		pp.Nodes[n.ID] = n
 	}
 	for _, n := range p.UserTasks {
+		pp.Nodes[n.ID] = n
+	}
+	for _, n := range p.ReceiveTasks {
+		pp.Nodes[n.ID] = n
+	}
+	for _, n := range p.IntermediateCatchEvents {
 		pp.Nodes[n.ID] = n
 	}
 	for _, n := range p.ExclusiveGateways {

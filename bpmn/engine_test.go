@@ -245,3 +245,77 @@ func TestBPMNParserTrisotech(t *testing.T) {
 	assert.True(t, instance.Completed)
 }
 
+const waitStateBPMN = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" targetNamespace="http://bpmn.io/schema/bpmn">
+  <process id="wait_state_process" isExecutable="true">
+    <startEvent id="start" />
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="user_task" />
+    <userTask id="user_task" name="User Approval" />
+    <sequenceFlow id="flow2" sourceRef="user_task" targetRef="receive_task" />
+    <receiveTask id="receive_task" name="Wait for Message" />
+    <sequenceFlow id="flow3" sourceRef="receive_task" targetRef="end" />
+    <endEvent id="end" />
+  </process>
+</definitions>`
+
+func TestBPMNWaitStates(t *testing.T) {
+	pp, err := ParseBPMN([]byte(waitStateBPMN))
+	require.NoError(t, err)
+	assert.Equal(t, "wait_state_process", pp.ID)
+	assert.Contains(t, pp.Nodes, "user_task")
+	assert.Contains(t, pp.Nodes, "receive_task")
+
+	engine := NewEngine(pp, nil)
+	instance, err := engine.StartInstance("instance-wait", nil)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "start")
+
+	// 1. Step: start -> moves to user_task
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "user_task")
+	assert.Empty(t, instance.WaitingTokens)
+	assert.False(t, instance.Completed)
+
+	// 2. Step: process user_task -> moves it to WaitingTokens
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Empty(t, instance.ActiveTokens)
+	assert.Contains(t, instance.WaitingTokens, "user_task")
+	assert.False(t, instance.Completed)
+
+	// 3. Step when user_task is waiting should be a no-op and not complete the instance
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.False(t, instance.Completed)
+	assert.Contains(t, instance.WaitingTokens, "user_task")
+
+	// 4. Complete user_task -> moves token to receive_task (Wait State)
+	err = engine.CompleteTask(instance, "user_task", map[string]interface{}{"approved": true})
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "receive_task")
+	assert.Empty(t, instance.WaitingTokens)
+	assert.Equal(t, true, instance.Variables["approved"])
+
+	// 5. Step: process active token at receive_task -> moves it to WaitingTokens
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Empty(t, instance.ActiveTokens)
+	assert.Contains(t, instance.WaitingTokens, "receive_task")
+	assert.False(t, instance.Completed)
+
+	// 6. Complete receive_task -> moves token to end
+	err = engine.CompleteTask(instance, "receive_task", nil)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "end")
+	assert.Empty(t, instance.WaitingTokens)
+
+	// 7. Step: end -> complete
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Empty(t, instance.ActiveTokens)
+	assert.Empty(t, instance.WaitingTokens)
+	assert.True(t, instance.Completed)
+}
+
+

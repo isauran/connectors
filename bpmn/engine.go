@@ -16,11 +16,12 @@ import (
 
 // ProcessInstance represents the state of an active process run.
 type ProcessInstance struct {
-	ID           string                 `json:"id"`
-	ProcessID    string                 `json:"process_id"`
-	ActiveTokens []string               `json:"active_tokens"` // Elements holding active tokens
-	Variables    map[string]interface{} `json:"variables"`     // Process context variables
-	Completed    bool                   `json:"completed"`
+	ID            string                 `json:"id"`
+	ProcessID     string                 `json:"process_id"`
+	ActiveTokens  []string               `json:"active_tokens"`  // Elements holding active tokens
+	WaitingTokens []string               `json:"waiting_tokens"` // Tokens waiting for external events (e.g. UserTask)
+	Variables     map[string]interface{} `json:"variables"`      // Process context variables
+	Completed     bool                   `json:"completed"`
 }
 
 // Engine coordinates the execution of BPMN processes.
@@ -60,8 +61,13 @@ func (e *Engine) StartInstance(id string, variables map[string]interface{}) (*Pr
 
 // Step advances the execution of active tokens in the process instance.
 func (e *Engine) Step(ctx context.Context, instance *ProcessInstance) error {
-	if instance.Completed || len(instance.ActiveTokens) == 0 {
-		instance.Completed = true
+	if instance.Completed {
+		return nil
+	}
+	if len(instance.ActiveTokens) == 0 {
+		if len(instance.WaitingTokens) == 0 {
+			instance.Completed = true
+		}
 		return nil
 	}
 
@@ -158,8 +164,48 @@ func (e *Engine) Step(ctx context.Context, instance *ProcessInstance) error {
 		for _, flow := range outflows {
 			instance.ActiveTokens = append(instance.ActiveTokens, flow.TargetRef)
 		}
+
+	case UserTask:
+		slog.Info("[BPMN ENGINE] UserTask reached (Wait State)", "node_id", n.ID, "name", n.Name)
+		instance.WaitingTokens = append(instance.WaitingTokens, n.ID)
+
+	case ReceiveTask:
+		slog.Info("[BPMN ENGINE] ReceiveTask reached (Wait State)", "node_id", n.ID, "name", n.Name)
+		instance.WaitingTokens = append(instance.WaitingTokens, n.ID)
+
+	case IntermediateCatchEvent:
+		slog.Info("[BPMN ENGINE] IntermediateCatchEvent reached (Wait State)", "node_id", n.ID, "name", n.Name)
+		instance.WaitingTokens = append(instance.WaitingTokens, n.ID)
 	}
 
+	return nil
+}
+
+// CompleteTask resumes a process instance paused at a wait state (UserTask, ReceiveTask, or IntermediateCatchEvent).
+func (e *Engine) CompleteTask(instance *ProcessInstance, nodeID string, variables map[string]interface{}) error {
+	found := false
+	for i, t := range instance.WaitingTokens {
+		if t == nodeID {
+			instance.WaitingTokens = append(instance.WaitingTokens[:i], instance.WaitingTokens[i+1:]...)
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("token for node %s is not currently waiting", nodeID)
+	}
+
+	if instance.Variables == nil {
+		instance.Variables = make(map[string]interface{})
+	}
+	for k, v := range variables {
+		instance.Variables[k] = v
+	}
+
+	slog.Info("[BPMN ENGINE] Resuming execution from wait state", "node_id", nodeID, "instance_id", instance.ID)
+
+	// Move the token forward to target nodes
+	e.moveToken(instance, nodeID, "")
 	return nil
 }
 
@@ -248,6 +294,10 @@ func startLocalServer(vars map[string]interface{}, updateChan chan map[string]in
 }
 
 func evaluateCondition(expr string, vars map[string]interface{}) bool {
+	expr = strings.TrimSpace(expr)
+	if strings.HasPrefix(expr, "${") && strings.HasSuffix(expr, "}") {
+		expr = expr[2 : len(expr)-1]
+	}
 	expr = strings.TrimSpace(expr)
 	if expr == "" {
 		return true
