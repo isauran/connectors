@@ -2,12 +2,14 @@
 - [x] Добавить зависимость от modernc.org/sqlite в durable-wasm/go.mod
 - [x] Обновить интерфейс SnapshotStore и структуру FileSnapshotStore (метод Delete) в engine.go
 - [x] Создать sqlite_store.go с реализацией SqliteSnapshotStore
-- [x] Обновить примеры (simple, camunda) для использования нового API удаления и SqliteSnapshotStore в simple
+- [x] Обновить примеры (simple, camunda, process-csv, gotenberg-telegram, temporal) для использования нового API удаления и SqliteSnapshotStore
 - [x] Синхронизировать зависимости (go work sync, go mod tidy)
 - [x] Проверить unit-тесты ядра движка (make -C durable-wasm test)
 - [x] Протестировать пример simple локально с SQLite-базой
-- [x] Подготовить Docker-окружение для репликации через Litestream (docker-compose, Dockerfile)
-- [x] Перевести логирование на structured slog в engine.go и примере simple
-- [x] Добавить .gitignore для примера simple (игнорирование *.db, rclone_data и бинарников)
-- [x] Проверить репликацию и автоматическое восстановление базы данных из S3 при старте контейнера
+- [x] Подготовить Docker-окружение для репликации через Litestream и SeaweedFS
+- [x] Перевести логирование на structured slog в engine.go и во всех примерах
+- [x] Добавить .gitignore для примера simple (игнорирование *.db, seaweed_data и бинарников)
+- [x] Настроить политику retention (5 дней) и регулярных бэкапов (раз в 24 часа) в litestream.yml
+- [x] Доработать entrypoint.sh для ожидания готовности SeaweedFS Filer / S3 и автоматического создания бакета
+- [x] Проверить репликацию и автоматическое восстановление базы данных из SeaweedFS S3 при старте контейнера
 - [x] Задокументировать изменения (walkthrough.md)
