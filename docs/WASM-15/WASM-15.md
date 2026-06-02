@@ -1,6 +1,6 @@
 ---
 task: WASM-15
-status: In Progress
+status: Completed
 summary: Разработка Go SDK для упрощения написания бизнес-логики в Durable WASM
 ---
 

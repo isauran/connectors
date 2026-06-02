@@ -1,11 +1,10 @@
-# Task Checklist - WASM-15: Go SDK for Durable WASM
+# Task Checklist - WASM-15: Go SDK Workflow State Pattern Migration
 
-- `[x]` Implement SDK in root of `durable-wasm` (`sdk.go` & `sdk_stub.go` with build tags)
-  - `[x]` Import host functions (`checkpoint`, `host_get_time`, `host_call_api`, `stream_data`)
-  - `[x]` Implement SDK API wrappers (`GetTime`, `CallAPI`)
-  - `[x]` Implement `Reader` (`io.Reader`) and `Writer` (`io.WriteCloser`)
-  - `[x]` Implement Fluent API (`Workflow` and `APICall` builders)
-- `[x]` Add build tags `//go:build !wasm` to host files (`engine.go`, `s3_store.go`, `fs_store.go`)
-- `[x]` Refactor `examples/s3-store/worker/main.go` to use Fluent API of `durable` package
-- `[x]` Rebuild `s3-store` worker WebAssembly binary and run all tests to verify stability
-- `[x]` Fix `.gitignore` to prevent ignoring `host/` directories containing source files
+- `[x]` Migrate `examples/s3-store/worker/main.go` to State Struct pattern
+- `[x]` Migrate `examples/camunda/worker/main.go` to State Struct pattern
+- `[x]` Migrate `examples/process-csv/worker/main.go` to State Struct pattern
+- `[x]` Migrate `examples/gotenberg-telegram/worker/main.go` to State Struct pattern
+- `[x]` Migrate `examples/temporal/worker/main.go` to State Struct pattern
+- `[ ]` Rebuild all WebAssembly binaries (`worker.wasm`) using TinyGo
+- `[ ]` Run host tests (`go test -v ./...`) to verify snapshot and restore functions
+- `[ ]` Commit changes, update release tag `durable-wasm/v0.0.5`

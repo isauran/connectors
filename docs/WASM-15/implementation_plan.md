@@ -1,42 +1,99 @@
-# Implementation Plan - WASM-15: Go SDK for Durable WASM
+# Implementation Plan - WASM-15: Go SDK Workflow State Pattern Migration
 
-Этот план описывает этапы создания SDK в корне пакета `durable-wasm` для упрощения разработки отказоустойчивых WASM-воркеров.
+Этот план описывает внедрение паттерна структуры состояния (State Struct) с ленивой инициализацией во все примеры Durable WASM воркеров. Этот паттерн решает проблему безопасной передачи переменных между шагами воркфлоу, предотвращая загрязнение глобальной области видимости и гарантируя сохранность данных при восстановлении из чекпоинтов.
+
+## User Review Required
+
+> [!NOTE]
+> При использовании структуры состояния, методы которой являются шагами воркфлоу, инициализация структуры должна выполняться лениво в точке входа воркера `run()` (только если глобальный указатель `state == nil`). Это гарантирует, что при восстановлении воркера из сохраненного снимка памяти хоста, куча с уже заполненным объектом состояния будет восстановлена, а повторный вызов `run()` не перезапишет её новым пустым объектом.
+
+## Pattern Description: State Struct with Lazy Initialization
+
+Для передачи данных между шагами мы группируем все переменные в одну структуру:
+
+```go
+type State struct {
+	OrderID     string
+	InventoryOk bool
+	PaymentOk   bool
+}
+
+var state *State
+
+//export run
+func run() int32 {
+	if state == nil {
+		state = &State{
+			OrderID: "ORD-CAM-8899", // Начальное состояние
+		}
+	}
+	return durable.NewWorkflow().
+		Step(state.checkInventory).
+		Step(state.capturePayment).
+		Run()
+}
+
+func (s *State) checkInventory() error {
+	// Чтение или запись в s.InventoryOk
+	s.InventoryOk = true
+	return nil
+}
+
+func (s *State) capturePayment() error {
+	// Доступ к s.InventoryOk и запись в s.PaymentOk
+	if s.InventoryOk {
+		s.PaymentOk = true
+	}
+	return nil
+}
+```
 
 ## Proposed Changes
 
-### [Component: Go SDK]
-
-#### [NEW] [durable-wasm/sdk.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/sdk.go)
-- Реализовать SDK в корне пакета `durable`.
-- Импортировать все необходимые хост-функции (`checkpoint`, `host_get_time`, `host_call_api`, `stream_data`) с build tag `//go:build wasm`.
-- Предоставить API для работы с детерминированным временем и вызовами хоста: `GetTime()`, `CallAPI()`.
-- Реализовать `Reader` и `Writer` на базе `stream_data` с поддержкой стандартных интерфейсов `io.Reader` и `io.WriteCloser`.
-- Предоставить Fluent API структуры `Workflow` и `APICall` для объединения шагов и внешних вызовов в цепочки.
-
-#### [NEW] [durable-wasm/sdk_stub.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/sdk_stub.go)
-- Реализовать заглушки всех структур и функций SDK с build tag `//go:build !wasm` для успешной компиляции на хосте.
-
-#### [MODIFY] [durable-wasm/engine.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/engine.go), [s3_store.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/s3_store.go), [fs_store.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/fs_store.go)
-- Добавить `//go:build !wasm` в начало файлов хоста, чтобы TinyGo игнорировал их при сборке воркера в WASM (это предотвращает ошибки компиляции CGO-зависимостей Wasmtime).
-
----
-
 ### [Component: Examples]
 
+Мы перепишем все 5 примеров воркеров на использование структуры состояния:
+
 #### [MODIFY] [examples/s3-store/worker/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/s3-store/worker/main.go)
-- Удалить все импорты хост-функций и низкоуровневые манипуляции с памятью/указателями.
-- Переписать логику воркера с использованием `durable.NewWorkflow()` Fluent API и типизированного потокового ввода-вывода (`durable.Reader`, `durable.Writer`).
+- Перенести глобальную переменную `processedBytes` в структуру `State`.
+- Сделать функции `initialize`, `processStream`, `finalizeWorkflow` методами `*State`.
+- Выполнить ленивую инициализацию `state` в `run()`.
+
+#### [MODIFY] [examples/camunda/worker/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/camunda/worker/main.go)
+- Перенести `orderID`, `inventoryOk`, `paymentOk` в структуру `State`.
+- Заменить обычные функции шагов на методы `*State`.
+- Ленивая инициализация `state` в `run()`.
+
+#### [MODIFY] [examples/process-csv/worker/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/process-csv/worker/main.go)
+- Перенести `totalAmount` и `validRecords` в структуру `State`.
+- Заменить функции шагов на методы `*State`.
+- Ленивая инициализация `state` в `run()`.
+
+#### [MODIFY] [examples/gotenberg-telegram/worker/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/gotenberg-telegram/worker/main.go)
+- Перенести `chatID`, `fileID`, `docxBytes` и `pdfBytes` в структуру `State`.
+- Заменить функции шагов на методы `*State`.
+- Ленивая инициализация `state` в `run()`.
+
+#### [MODIFY] [examples/temporal/worker/main.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/examples/temporal/worker/main.go)
+- Перенести `activityID`, `baseRate`, `multiplier` и `calculatedVal` в структуру `State`.
+- Заменить функции шагов на методы `*State`.
+- Ленивая инициализация `state` в `run()`.
 
 ---
 
 ## Verification Plan
 
 ### Automated Tests
-- Собрать воркер с помощью TinyGo и запустить интеграционный тест `s3-store` хоста:
-  ```bash
-  cd durable-wasm
-  # Сборка воркера
-  tinygo build -o examples/s3-store/worker/worker.wasm -target=wasi -panic=trap examples/s3-store/worker/main.go
-  # Запуск тестов хоста
-  go test -v ./...
-  ```
+1. Перекомпилировать все воркеры с помощью TinyGo (для каждого примера):
+   ```bash
+   cd durable-wasm
+   tinygo build -o examples/s3-store/worker/worker.wasm -target=wasi -panic=trap examples/s3-store/worker/main.go
+   tinygo build -o examples/camunda/worker/worker.wasm -target=wasi -panic=trap examples/camunda/worker/main.go
+   tinygo build -o examples/process-csv/worker/worker.wasm -target=wasi -panic=trap examples/process-csv/worker/main.go
+   tinygo build -o examples/gotenberg-telegram/worker/worker.wasm -target=wasi -panic=trap examples/gotenberg-telegram/worker/main.go
+   tinygo build -o examples/temporal/worker/worker.wasm -target=wasi -panic=trap examples/temporal/worker/main.go
+   ```
+2. Запустить все тесты хост-движка в `durable-wasm` для подтверждения, что функциональность snapshot/restore работает без сбоев:
+   ```bash
+   go test -v ./...
+   ```
