@@ -1,10 +1,12 @@
-# Task Checklist - WASM-15: Go SDK Workflow State Pattern Migration
+# Task Checklist - Host Execution Fluent API
 
-- `[x]` Migrate `examples/s3-store/worker/main.go` to State Struct pattern
-- `[x]` Migrate `examples/camunda/worker/main.go` to State Struct pattern
-- `[x]` Migrate `examples/process-csv/worker/main.go` to State Struct pattern
-- `[x]` Migrate `examples/gotenberg-telegram/worker/main.go` to State Struct pattern
-- `[x]` Migrate `examples/temporal/worker/main.go` to State Struct pattern
-- `[ ]` Rebuild all WebAssembly binaries (`worker.wasm`) using TinyGo
-- `[ ]` Run host tests (`go test -v ./...`) to verify snapshot and restore functions
-- `[ ]` Commit changes, update release tag `durable-wasm/v0.0.5`
+- [x] Add `Execution` builder and `Session` method to `engine.go`
+- [x] Migrate `examples/s3-store/host/main.go` to Host Fluent API
+- [x] Migrate `examples/camunda/host/main.go` and `main_test.go` to Host Fluent API
+- [x] Migrate `examples/process-csv/host/main.go` and `main_test.go` to Host Fluent API
+- [x] Migrate `examples/gotenberg-telegram/host/main.go` and `main_test.go` to Host Fluent API
+- [x] Migrate `examples/temporal/host/main.go` to Host Fluent API
+- [x] Migrate `engine_test.go` to Host Fluent API
+- [x] Update `README.md` and `README.ru.md` with new Host Fluent API usage examples
+- [x] Run all tests (`go test -v ./...`) to verify success
+- [x] Commit changes, update release tag `durable-wasm/v0.0.5`
