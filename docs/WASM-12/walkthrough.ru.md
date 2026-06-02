@@ -1,6 +1,6 @@
 # Walkthrough - WASM-12: Durable WASM Stability Improvements
 
-Мы успешно устранили риски утечек ресурсов (TCP-сокеты, сетевые горутины и C-память Wasmtime) в пакете `durable-wasm` и провели всестороннее стресс-тестирование движка.
+Мы успешно устранили риски утечек ресурсов (TCP-сокеты, сетевые горутины и C-память Wasmtime) в пакете `durable-wasm`, очистили inline WAT фикстуры и провели всестороннее стресс-тестирование движка.
 
 ## Внесенные изменения
 
@@ -17,10 +17,15 @@
 - Добавлен `defer store.Close()` внутри `Execute` для явного высвобождения памяти Wasmtime, выделенной через cgo.
 
 ### 4. Оптимизация SQLite для конкурентного доступа
-- Для `SqliteSnapshotStore` установлено ограничение `db.SetMaxOpenConns(1)`, чтобы сериализовать параллельные записи и предотвратить ошибки `database is locked (SQLITE_BUSY)`.
+- Для `SqliteSnapshotStore` установлено ограничение пула соединений `db.SetMaxOpenConns(1)`, чтобы сериализовать параллельные записи и предотвратить ошибки `database is locked (SQLITE_BUSY)`.
 - Разделены вызовы PRAGMA команд внутри `NewSqliteSnapshotStore` для корректного выполнения драйвером.
 
-### 5. Адаптация примеров хост-приложений
+### 5. Рефакторинг WAT-фикстур (Чистый код)
+- Все встроенные WAT-строки из `engine_test.go` вынесены во внешние `.wat` файлы в каталоге `durable-wasm/testdata/`.
+- Создан файл [testdata.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/testdata/testdata.go) прямо рядом с `.wat` файлами, содержащий директивы `//go:embed`.
+- Пакет `testdata` импортирован в `engine_test.go`, сделав тестовый код чистым, модульным и удобным для чтения.
+
+### 6. Адаптация примеров хост-приложений
 - Все хост-приложения примеров обновлены под новую сигнатуру `Execute`:
   - `examples/camunda/host/main.go` и `main_test.go`
   - `examples/gotenberg-telegram/host/main.go` and `main_test.go`
@@ -28,7 +33,7 @@
   - `examples/temporal/host/main.go`
   - `examples/durable-s3/host/main.go`
 
-### 6. Новые тесты стабильности и стресс-тестирования
+### 7. Новые тесты стабильности и стресс-тестирования
 - В `engine_test.go` добавлены три класса тестов:
   - `TestExecuteCancellation`: Проверяет быструю отмену выполнения и освобождение ресурсов при отмене контекста.
   - `TestStorageErrorInjection`: Эмулирует сбои SnapshotStore при сохранении метаданных и снапшотов.
