@@ -1,0 +1,9 @@
+- [x] Доработка `SnapshotStore` (добавление `SaveWasm` и `LoadWasm`)
+- [x] Реализация `SaveWasm` и `LoadWasm` в `FileSnapshotStore` (в `engine.go`)
+- [x] Реализация `SaveWasm` и `LoadWasm` в `SqliteSnapshotStore` (в `sqlite_store.go`)
+- [x] Реализация `SaveWasm` и `LoadWasm` в `PostgresSnapshotStore` (в `postgres_store.go`)
+- [x] Интеграция реестра WASM в `NewEngine` и динамическая компиляция в `Execute` (в `engine.go`)
+- [x] Исправление логики полного снапшота при `Version == 1` в `engine.go`
+- [x] Адаптацию тестов в `engine_test.go` (`TestDirtyPageAndOplog`)
+- [x] Добавление теста `TestMultiVersionWasmExecution` в `engine_test.go`
+- [x] Запуск тестов и проверка линтера (`go vet` и тесты успешно пройдены)
