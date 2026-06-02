@@ -1,0 +1,6 @@
+- [x] Инициализировать задачу WASM-05 в Semantic Store (docs/WASM-05/) и обновить docs/index.md
+- [x] Добавить зависимость от httpstream в durable-wasm/go.mod и обновить go.work
+- [x] Переписать net/http вызовы в durable-wasm/host/durable/engine.go на httpstream
+- [x] Синхронизировать зависимости (go work sync, go mod tidy)
+- [x] Протестировать изменения локально (make test в durable-wasm и примеры)
+- [x] Задокументировать изменения (walkthrough.md)
