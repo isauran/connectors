@@ -2,6 +2,7 @@ package bpmn
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -192,6 +193,53 @@ func TestBPMNParallelGateway(t *testing.T) {
 	assert.Contains(t, instance.ActiveTokens, "end")
 
 	// 6. end -> complete
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.True(t, instance.Completed)
+}
+
+func TestBPMNParserTrisotech(t *testing.T) {
+	xmlData, err := os.ReadFile("testdata/A.1.0.bpmn")
+	require.NoError(t, err)
+
+	pp, err := ParseBPMN(xmlData)
+	require.NoError(t, err)
+	assert.Equal(t, "WFP-6-", pp.ID)
+	assert.Equal(t, "_93c466ab-b271-4376-a427-f4c353d55ce8", pp.StartNodeID)
+
+	// Check that tasks are indexed correctly
+	assert.Contains(t, pp.Nodes, "_ec59e164-68b4-4f94-98de-ffb1c58a84af") // Task 1
+	assert.Contains(t, pp.Nodes, "_820c21c0-45f3-473b-813f-06381cc637cd") // Task 2
+	assert.Contains(t, pp.Nodes, "_e70a6fcb-913c-4a7b-a65d-e83adc73d69c") // Task 3
+	assert.Contains(t, pp.Nodes, "_a47df184-085b-49f7-bb82-031c84625821") // End Event
+
+	// Run process instance on this trisotech process definitions
+	engine := NewEngine(pp, nil)
+	instance, err := engine.StartInstance("instance-trisotech", nil)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "_93c466ab-b271-4376-a427-f4c353d55ce8")
+
+	// Step 1: Start Event -> Task 1
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "_ec59e164-68b4-4f94-98de-ffb1c58a84af")
+
+	// Step 2: Task 1 -> Task 2
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "_820c21c0-45f3-473b-813f-06381cc637cd")
+
+	// Step 3: Task 2 -> Task 3
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "_e70a6fcb-913c-4a7b-a65d-e83adc73d69c")
+
+	// Step 4: Task 3 -> End Event
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "_a47df184-085b-49f7-bb82-031c84625821")
+
+	// Step 5: End Event -> Complete
 	err = engine.Step(context.Background(), instance)
 	require.NoError(t, err)
 	assert.True(t, instance.Completed)

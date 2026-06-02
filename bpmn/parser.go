@@ -1,8 +1,10 @@
 package bpmn
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
+	"io"
 )
 
 // Definitions represents the root element of a BPMN XML document.
@@ -19,6 +21,8 @@ type Process struct {
 	StartEvents       []StartEvent       `xml:"startEvent"`
 	EndEvents         []EndEvent         `xml:"endEvent"`
 	ServiceTasks      []ServiceTask      `xml:"serviceTask"`
+	Tasks             []ServiceTask      `xml:"task"`
+	UserTasks         []ServiceTask      `xml:"userTask"`
 	SequenceFlows     []SequenceFlow     `xml:"sequenceFlow"`
 	ExclusiveGateways []ExclusiveGateway `xml:"exclusiveGateway"`
 	ParallelGateways  []ParallelGateway  `xml:"parallelGateway"`
@@ -84,7 +88,11 @@ type ParsedProcess struct {
 // ParseBPMN parses raw BPMN XML data and indexes the first executable process found.
 func ParseBPMN(xmlData []byte) (*ParsedProcess, error) {
 	var defs Definitions
-	err := xml.Unmarshal(xmlData, &defs)
+	dec := xml.NewDecoder(bytes.NewReader(xmlData))
+	dec.CharsetReader = func(charset string, input io.Reader) (io.Reader, error) {
+		return input, nil
+	}
+	err := dec.Decode(&defs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal BPMN XML: %w", err)
 	}
@@ -123,6 +131,12 @@ func indexProcess(p *Process) (*ParsedProcess, error) {
 		pp.Nodes[n.ID] = n
 	}
 	for _, n := range p.ServiceTasks {
+		pp.Nodes[n.ID] = n
+	}
+	for _, n := range p.Tasks {
+		pp.Nodes[n.ID] = n
+	}
+	for _, n := range p.UserTasks {
 		pp.Nodes[n.ID] = n
 	}
 	for _, n := range p.ExclusiveGateways {
