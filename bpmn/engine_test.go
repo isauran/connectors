@@ -130,3 +130,70 @@ func TestDMNEvaluator(t *testing.T) {
 	require.NotNil(t, res2)
 	assert.Equal(t, true, res2["approved"])
 }
+
+const parallelBPMN = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" targetNamespace="http://bpmn.io/schema/bpmn">
+  <process id="parallel_process" isExecutable="true">
+    <startEvent id="start" />
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="fork" />
+    <parallelGateway id="fork" name="Split" />
+    
+    <sequenceFlow id="flow_to_b1" sourceRef="fork" targetRef="task_b1" />
+    <serviceTask id="task_b1" name="Branch 1 Task" />
+    <sequenceFlow id="flow_to_join1" sourceRef="task_b1" targetRef="join" />
+    
+    <sequenceFlow id="flow_to_b2" sourceRef="fork" targetRef="task_b2" />
+    <serviceTask id="task_b2" name="Branch 2 Task" />
+    <sequenceFlow id="flow_to_join2" sourceRef="task_b2" targetRef="join" />
+    
+    <parallelGateway id="join" name="Merge" />
+    <sequenceFlow id="flow_to_end" sourceRef="join" targetRef="end" />
+    <endEvent id="end" />
+  </process>
+</definitions>`
+
+func TestBPMNParallelGateway(t *testing.T) {
+	pp, err := ParseBPMN([]byte(parallelBPMN))
+	require.NoError(t, err)
+	assert.Equal(t, "parallel_process", pp.ID)
+
+	engine := NewEngine(pp, nil)
+	instance, err := engine.StartInstance("instance-parallel", nil)
+	require.NoError(t, err)
+
+	// 1. start -> fork
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "fork")
+
+	// 2. fork -> [task_b1, task_b2]
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "task_b1")
+	assert.Contains(t, instance.ActiveTokens, "task_b2")
+
+	// 3. Обрабатываем первый токен (task_b1) -> переходит на join.
+	// Остается task_b2 и join.
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "task_b2")
+	assert.Contains(t, instance.ActiveTokens, "join")
+
+	// 4. Обрабатываем task_b2 -> переходит на join.
+	// Теперь оба токена пришли на join. ActiveTokens: [join, join].
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "join")
+	assert.Equal(t, 2, len(instance.ActiveTokens))
+
+	// 5. Обрабатываем join -> переходит на end.
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "end")
+
+	// 6. end -> complete
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.True(t, instance.Completed)
+}
+

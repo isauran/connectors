@@ -180,12 +180,19 @@ func (e *Engine) executeWasmTask(ctx context.Context, instance *ProcessInstance,
 	}
 	defer server.Shutdown(ctx)
 
+	simulateCrash := false
+	if val, ok := instance.Variables["simulate_crash"]; ok {
+		if b, ok := val.(bool); ok {
+			simulateCrash = b
+		}
+	}
+
 	// Create and compile specific WASM engine configuration for this step if task-level compilation is needed
 	// For simplicity, we execute via our shared engine using the Instance ID and task parameters
 	slog.Info("[BPMN ENGINE] Launching Wasman WASM session", "instance_id", instance.ID, "wasm_path", task.WasmPath, "server", addr)
 	crashed, err := e.WasmanEngine.Session(instance.ID).
 		WithServer(addr).
-		WithCrash(false).
+		WithCrash(simulateCrash).
 		Run(ctx)
 	if err != nil {
 		return fmt.Errorf("wasman run failed: %w (crashed: %t)", err, crashed)

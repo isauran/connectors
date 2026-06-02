@@ -9,4 +9,12 @@
 - [x] Разработать движок обхода BPMN-графа (`bpmn/engine.go`)
 - [x] Разработать парсер и вычислитель DMN таблиц (`bpmn/dmn.go`)
 - [x] Написать юнит-тесты и интеграционный тест с `wasman` (`bpmn/engine_test.go`)
-- [x] Запустить тесты и проверить сборку
+- [x] Запустить тестов и проверить сборку
+- [ ] Добавить в `bpmn/engine_test.go` тесты для Parallel Gateway Fork/Join
+- [ ] Создать сквозной пример в `bpmn/examples/orchestration`:
+  - [ ] Создать `process.bpmn` и `decision.dmn`
+  - [ ] Написать `worker/main.go` и скомпилировать его под WASM
+  - [ ] Написать `host/main.go` с интеграцией `bpmn.Engine` + `wasman.Engine` + `Evaluate(DMN)` + симуляция сбоя
+  - [ ] Создать `Makefile` и `README.md`
+- [ ] Убедиться, что пример и все тесты успешно работают
+

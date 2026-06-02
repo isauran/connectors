@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" targetNamespace="http://bpmn.io/schema/bpmn">
+  <process id="loan_process" isExecutable="true">
+    <startEvent id="start" />
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="check_rules" />
+    
+    <!-- ServiceTask that uses DMN (evaluated on the host side dynamically) -->
+    <serviceTask id="check_rules" name="Check Loan Rules" />
+    <sequenceFlow id="flow2" sourceRef="check_rules" targetRef="is_approved" />
+    
+    <exclusiveGateway id="is_approved" name="Is Approved?" />
+    
+    <sequenceFlow id="flow_approved" sourceRef="is_approved" targetRef="execute_payment">
+      <conditionExpression>approved == true</conditionExpression>
+    </sequenceFlow>
+    <serviceTask id="execute_payment" name="Execute Payment Payout" wasmPath="../worker/worker.wasm" />
+    <sequenceFlow id="flow_end_ok" sourceRef="execute_payment" targetRef="end" />
+    
+    <sequenceFlow id="flow_rejected" sourceRef="is_approved" targetRef="log_rejection">
+      <conditionExpression>approved == false</conditionExpression>
+    </sequenceFlow>
+    <serviceTask id="log_rejection" name="Log Loan Rejection" wasmPath="../worker/worker.wasm" />
+    <sequenceFlow id="flow_end_fail" sourceRef="log_rejection" targetRef="end" />
+    
+    <endEvent id="end" />
+  </process>
+</definitions>

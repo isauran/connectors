@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" id="definitions" name="definitions" namespace="http://camunda.org/schema/1.0/dmn">
+  <decision id="loan_decision" name="Loan Decision">
+    <decisionTable id="decisionTable" hitPolicy="UNIQUE">
+      <input id="input_age" label="Age">
+        <inputExpression id="inputExpression_age" typeRef="integer">
+          <text>age</text>
+        </inputExpression>
+      </input>
+      <input id="input_income" label="Income">
+        <inputExpression id="inputExpression_income" typeRef="integer">
+          <text>income</text>
+        </inputExpression>
+      </input>
+      <output id="output_approved" label="Approved" name="approved" typeRef="boolean" />
+      
+      <!-- Rule 1: Underage -->
+      <rule id="rule_underage">
+        <inputEntry id="inputEntry_age1">
+          <text>&lt;18</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_income1">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="outputEntry_approved1">
+          <text>false</text>
+        </outputEntry>
+      </rule>
+      
+      <!-- Rule 2: Adult but low income -->
+      <rule id="rule_low_income">
+        <inputEntry id="inputEntry_age2">
+          <text>&gt;17</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_income2">
+          <text>&lt;1000</text>
+        </inputEntry>
+        <outputEntry id="outputEntry_approved2">
+          <text>false</text>
+        </outputEntry>
+      </rule>
+      
+      <!-- Rule 3: Adult with sufficient income -->
+      <rule id="rule_approved">
+        <inputEntry id="inputEntry_age3">
+          <text>&gt;17</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_income3">
+          <text>&gt;999</text>
+        </inputEntry>
+        <outputEntry id="outputEntry_approved3">
+          <text>true</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>
