@@ -9,6 +9,8 @@
 | WASM-05 | Интеграция httpstream в durable-wasm | Completed | Переход на Fluent API httpstream для скачивания и загрузки данных в WASM-движке. |
 | WASM-06 | Реструктуризация модуля durable-wasm | Completed | Перенос демо-файлов и песочницы в каталог examples, очистка корня модуля. |
 | WASM-07 | Хранение снапшотов в SQLite и репликация в S3 | Completed | Хранение снимков WASM в SQLite и настройка репликации через Litestream. |
+| WASM-08 | Исследование архитектуры Golem Cloud | Completed | Проведен детальный анализ архитектуры Golem Cloud (Oplog, Delta Snapshots) и ограничений SQLite. |
+
 
 
 
