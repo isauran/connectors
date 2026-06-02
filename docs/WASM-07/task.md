@@ -1,0 +1,10 @@
+- [x] Инициализировать задачу WASM-07 in Semantic Store (docs/WASM-07/) и обновить docs/index.md
+- [x] Добавить зависимость от modernc.org/sqlite в durable-wasm/go.mod
+- [x] Обновить интерфейс SnapshotStore и структуру FileSnapshotStore (метод Delete) в engine.go
+- [x] Создать sqlite_store.go с реализацией SqliteSnapshotStore
+- [x] Обновить примеры (simple, camunda) для использования нового API удаления и SqliteSnapshotStore в simple
+- [x] Синхронизировать зависимости (go work sync, go mod tidy)
+- [x] Проверить unit-тесты ядра движка (make -C durable-wasm test)
+- [x] Протестировать пример simple локально с SQLite-базой
+- [x] Подготовить Docker-окружение для репликации через Litestream (docker-compose, Dockerfile)
+- [x] Задокументировать изменения (walkthrough.md)

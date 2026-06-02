@@ -8,6 +8,8 @@
 | WASM-04 | Durable Execution Engine на базе WASM | Completed | Разработка MVP WASM-движка с snapshotting и O(1) RAM. Объединено в единый переиспользуемый Go-модуль. |
 | WASM-05 | Интеграция httpstream в durable-wasm | Completed | Переход на Fluent API httpstream для скачивания и загрузки данных в WASM-движке. |
 | WASM-06 | Реструктуризация модуля durable-wasm | Completed | Перенос демо-файлов и песочницы в каталог examples, очистка корня модуля. |
+| WASM-07 | Хранение снапшотов в SQLite и репликация в S3 | Completed | Хранение снимков WASM в SQLite и настройка репликации через Litestream. |
+
 
 
 
