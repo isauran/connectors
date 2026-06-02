@@ -9,4 +9,4 @@
 - [x] Migrate `engine_test.go` to Host Fluent API
 - [x] Update `README.md` and `README.ru.md` with new Host Fluent API usage examples
 - [x] Run all tests (`go test -v ./...`) to verify success
-- [x] Commit changes, update release tag `durable-wasm/v0.0.5`
+- [x] Commit changes, update release tag `durable-wasm/v0.0.6`
