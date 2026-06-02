@@ -10,11 +10,12 @@
 - [x] Разработать парсер и вычислитель DMN таблиц (`bpmn/dmn.go`)
 - [x] Написать юнит-тесты и интеграционный тест с `wasman` (`bpmn/engine_test.go`)
 - [x] Запустить тестов и проверить сборку
-- [ ] Добавить в `bpmn/engine_test.go` тесты для Parallel Gateway Fork/Join
-- [ ] Создать сквозной пример в `bpmn/examples/orchestration`:
-  - [ ] Создать `process.bpmn` и `decision.dmn`
-  - [ ] Написать `worker/main.go` и скомпилировать его под WASM
-  - [ ] Написать `host/main.go` с интеграцией `bpmn.Engine` + `wasman.Engine` + `Evaluate(DMN)` + симуляция сбоя
-  - [ ] Создать `Makefile` и `README.md`
-- [ ] Убедиться, что пример и все тесты успешно работают
+- [x] Добавить в `bpmn/engine_test.go` тесты для Parallel Gateway Fork/Join
+- [x] Создать сквозной пример в `bpmn/examples/orchestration`:
+  - [x] Создать `process.bpmn` и `decision.dmn`
+  - [x] Написать `worker/main.go` и скомпилировать его под WASM
+  - [x] Написать `host/main.go` с интеграцией `bpmn.Engine` + `wasman.Engine` + `Evaluate(DMN)` + симуляция сбоя
+  - [x] Создать `Makefile` и `README.md`
+- [x] Убедиться, что пример и все тесты успешно работают
+
 

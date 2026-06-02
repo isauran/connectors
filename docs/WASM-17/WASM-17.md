@@ -1,10 +1,11 @@
 ---
 task: WASM-17
-status: In Progress
+status: Completed
 summary: Создание модуля bpmn для имплементации BPMN 2.0 и DMN движка с использованием wasman
 ---
 
 # WASM-17: Создание модуля bpmn для имплементации BPMN 2.0 и DMN движка
+
 
 ## Описание задачи
 Требуется создать отдельный Go-модуль `bpmn`, который будет реализовывать движок выполнения процессов стандарта BPMN 2.0 и таблиц решений DMN (Decision Model and Notation).

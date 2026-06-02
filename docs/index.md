@@ -19,4 +19,4 @@
 | WASM-14 | Удаление поддержки реляционных БД (SQLite/Postgres) | Completed | Удаление DDL-миграций, SQLite/Postgres и переход на S3 и File Snapshot Store |
 | WASM-15 | Разработка Go SDK для упрощения написания бизнес-логики | Completed | Создание пакета sdk для инкапсуляции WASM-импортов, ввода-вывода и автоматического управления шагами |
 | WASM-16 | Рефакторинг и декомпозиция Durable WASM и ребрендинг модуля | Completed | Рефакторинг engine.go и переименование модуля durable-wasm в wasman |
-| WASM-17 | Создание модуля bpmn для BPMN 2.0 и DMN движков | In Progress | Разработка Go-модуля bpmn, использующего wasman в качестве Durable WASM SDK |
+| WASM-17 | Создание модуля bpmn для BPMN 2.0 и DMN движков | Completed | Разработка Go-модуля bpmn, использующего wasman в качестве Durable WASM SDK |
