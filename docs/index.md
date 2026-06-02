@@ -14,4 +14,6 @@
 | WASM-10 | Обновление golangci-lint до v2 и статический анализ | Completed | Обновление golangci-lint до версии v2, адаптация конфигурации и запуск статического анализа. |
 | WASM-11 | Продакшн-ready улучшения для Durable WASM | Completed | Миграция версий WASM, OCC, Truncation Oplog, детерминированное время и NaN canonicalization |
 | TEMP-12 | Пример Sequin Outbox CDC к Temporal | In Progress | Обучающий пример интеграции Sequin Outbox CDC и Temporal на Go с HTTP-вебхуками и воркером. |
+| WASM-12 | Повышение стабильности и стресс-тестирование Durable WASM | Completed | Оптимизация утечек ресурсов (TCP сокетов, cgo ресурсов Wasmtime) и добавление стресс-тестов в durable-wasm. |
+
 
