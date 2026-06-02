@@ -11,29 +11,49 @@ import (
 type Definitions struct {
 	XMLName   xml.Name  `xml:"definitions"`
 	Processes []Process `xml:"process"`
+	Messages  []Message `xml:"message"`
+	Errors    []Error   `xml:"error"`
+}
+
+// Message represents a global BPMN message definition.
+type Message struct {
+	ID   string `xml:"id,attr"`
+	Name string `xml:"name,attr"`
+}
+
+// Error represents a global BPMN error definition.
+type Error struct {
+	ID        string `xml:"id,attr"`
+	Name      string `xml:"name,attr"`
+	ErrorCode string `xml:"errorCode,attr"`
 }
 
 // Process represents a BPMN process definition.
 type Process struct {
-	ID                string             `xml:"id,attr"`
-	Name              string             `xml:"name,attr"`
-	IsExecutable      bool               `xml:"isExecutable,attr"`
-	StartEvents       []StartEvent       `xml:"startEvent"`
-	EndEvents         []EndEvent         `xml:"endEvent"`
-	ServiceTasks      []ServiceTask      `xml:"serviceTask"`
+	ID                      string                   `xml:"id,attr"`
+	Name                    string                   `xml:"name,attr"`
+	IsExecutable            bool                     `xml:"isExecutable,attr"`
+	StartEvents             []StartEvent             `xml:"startEvent"`
+	EndEvents               []EndEvent               `xml:"endEvent"`
+	ServiceTasks            []ServiceTask            `xml:"serviceTask"`
 	Tasks                   []ServiceTask            `xml:"task"`
 	UserTasks               []UserTask               `xml:"userTask"`
 	ReceiveTasks            []ReceiveTask            `xml:"receiveTask"`
 	IntermediateCatchEvents []IntermediateCatchEvent `xml:"intermediateCatchEvent"`
 	SequenceFlows           []SequenceFlow           `xml:"sequenceFlow"`
-	ExclusiveGateways []ExclusiveGateway `xml:"exclusiveGateway"`
-	ParallelGateways  []ParallelGateway  `xml:"parallelGateway"`
+	ExclusiveGateways       []ExclusiveGateway       `xml:"exclusiveGateway"`
+	ParallelGateways        []ParallelGateway        `xml:"parallelGateway"`
+	BusinessRuleTasks       []BusinessRuleTask       `xml:"businessRuleTask"`
+	BoundaryEvents          []BoundaryEvent          `xml:"boundaryEvent"`
+	SubProcesses            []SubProcess             `xml:"subProcess"`
 }
 
 // StartEvent represents a BPMN start event.
 type StartEvent struct {
-	ID   string `xml:"id,attr"`
-	Name string `xml:"name,attr"`
+	ID                     string                  `xml:"id,attr"`
+	Name                   string                  `xml:"name,attr"`
+	IsInterrupting         bool                    `xml:"isInterrupting,attr"` // for event subprocess start events
+	MessageEventDefinition *MessageEventDefinition `xml:"messageEventDefinition"`
 }
 
 // EndEvent represents a BPMN end event.
@@ -70,6 +90,63 @@ type IntermediateCatchEvent struct {
 	Name string `xml:"name,attr"`
 }
 
+// BusinessRuleTask represents a BPMN business rule task calling DMN.
+type BusinessRuleTask struct {
+	ID                string `xml:"id,attr"`
+	Name              string `xml:"name,attr"`
+	DecisionRef       string `xml:"decisionRef,attr"`
+	MapDecisionResult string `xml:"mapDecisionResult,attr"`
+	ResultVariable    string `xml:"resultVariable,attr"`
+}
+
+// BoundaryEvent represents a BPMN boundary event attached to a task.
+type BoundaryEvent struct {
+	ID                     string                  `xml:"id,attr"`
+	Name                   string                  `xml:"name,attr"`
+	AttachedToRef          string                  `xml:"attachedToRef,attr"`
+	TimerEventDefinition   *TimerEventDefinition   `xml:"timerEventDefinition"`
+	MessageEventDefinition *MessageEventDefinition `xml:"messageEventDefinition"`
+	ErrorEventDefinition   *ErrorEventDefinition   `xml:"errorEventDefinition"`
+}
+
+// TimerEventDefinition defines a timer trigger duration.
+type TimerEventDefinition struct {
+	TimeDuration string `xml:"timeDuration"`
+}
+
+// MessageEventDefinition defines a message correlation reference.
+type MessageEventDefinition struct {
+	MessageRef string `xml:"messageRef,attr"`
+}
+
+// ErrorEventDefinition defines an error catch code.
+type ErrorEventDefinition struct {
+	ErrorRef string `xml:"errorRef,attr"`
+}
+
+// SubProcess represents an embedded subprocess block.
+type SubProcess struct {
+	ID                      string                   `xml:"id,attr"`
+	Name                    string                   `xml:"name,attr"`
+	TriggeredByEvent        bool                     `xml:"triggeredByEvent,attr"`
+	StartEvents             []StartEvent             `xml:"startEvent"`
+	EndEvents               []EndEvent               `xml:"endEvent"`
+	ServiceTasks            []ServiceTask            `xml:"serviceTask"`
+	Tasks                   []ServiceTask            `xml:"task"`
+	UserTasks               []UserTask               `xml:"userTask"`
+	ReceiveTasks            []ReceiveTask            `xml:"receiveTask"`
+	IntermediateCatchEvents []IntermediateCatchEvent `xml:"intermediateCatchEvent"`
+	SequenceFlows           []SequenceFlow           `xml:"sequenceFlow"`
+	ExclusiveGateways       []ExclusiveGateway       `xml:"exclusiveGateway"`
+	ParallelGateways        []ParallelGateway        `xml:"parallelGateway"`
+	BusinessRuleTasks       []BusinessRuleTask       `xml:"businessRuleTask"`
+	SubProcesses            []SubProcess             `xml:"subProcess"`
+	BoundaryEvents          []BoundaryEvent          `xml:"boundaryEvent"`
+
+	// Internal execution cache
+	StartNodeID             string
+}
+
 // SequenceFlow represents a BPMN transition flow between two elements.
 type SequenceFlow struct {
 	ID                  string               `xml:"id,attr"`
@@ -98,12 +175,17 @@ type ParallelGateway struct {
 
 // ParsedProcess is an indexed representation of a process layout for fast navigation.
 type ParsedProcess struct {
-	ID           string
-	Name         string
-	StartNodeID  string
-	Nodes        map[string]interface{}
-	Outflows     map[string][]SequenceFlow
-	Inflows      map[string][]SequenceFlow
+	ID                   string
+	Name                 string
+	StartNodeID          string
+	Nodes                map[string]interface{}
+	Outflows             map[string][]SequenceFlow
+	Inflows              map[string][]SequenceFlow
+	ParentSubProcesses   map[string]string          // nodeID -> parentSubProcessID
+	SubProcesses         map[string]*SubProcess     // subProcessID -> SubProcess
+	BoundaryEventsByNode map[string][]BoundaryEvent // nodeID -> BoundaryEvents
+	Messages             map[string]string          // MessageID -> MessageName
+	Errors               map[string]string          // ErrorID -> ErrorCode
 }
 
 // ParseBPMN parses raw BPMN XML data and indexes the first executable process found.
@@ -120,25 +202,38 @@ func ParseBPMN(xmlData []byte) (*ParsedProcess, error) {
 
 	for _, p := range defs.Processes {
 		if p.IsExecutable {
-			return indexProcess(&p)
+			return indexProcess(&p, &defs)
 		}
 	}
 
 	// fallback to first process if none are marked executable
 	if len(defs.Processes) > 0 {
-		return indexProcess(&defs.Processes[0])
+		return indexProcess(&defs.Processes[0], &defs)
 	}
 
 	return nil, fmt.Errorf("no processes found in BPMN document")
 }
 
-func indexProcess(p *Process) (*ParsedProcess, error) {
+func indexProcess(p *Process, defs *Definitions) (*ParsedProcess, error) {
 	pp := &ParsedProcess{
-		ID:       p.ID,
-		Name:     p.Name,
-		Nodes:    make(map[string]interface{}),
-		Outflows: make(map[string][]SequenceFlow),
-		Inflows:  make(map[string][]SequenceFlow),
+		ID:                   p.ID,
+		Name:                 p.Name,
+		Nodes:                make(map[string]interface{}),
+		Outflows:             make(map[string][]SequenceFlow),
+		Inflows:              make(map[string][]SequenceFlow),
+		ParentSubProcesses:   make(map[string]string),
+		SubProcesses:         make(map[string]*SubProcess),
+		BoundaryEventsByNode: make(map[string][]BoundaryEvent),
+		Messages:             make(map[string]string),
+		Errors:               make(map[string]string),
+	}
+
+	// Index global messages and errors
+	for _, msg := range defs.Messages {
+		pp.Messages[msg.ID] = msg.Name
+	}
+	for _, err := range defs.Errors {
+		pp.Errors[err.ID] = err.ErrorCode
 	}
 
 	// 1. Index all nodes
@@ -172,6 +267,18 @@ func indexProcess(p *Process) (*ParsedProcess, error) {
 	for _, n := range p.ParallelGateways {
 		pp.Nodes[n.ID] = n
 	}
+	for _, n := range p.BusinessRuleTasks {
+		pp.Nodes[n.ID] = n
+	}
+	for _, n := range p.BoundaryEvents {
+		pp.Nodes[n.ID] = n
+		pp.BoundaryEventsByNode[n.AttachedToRef] = append(pp.BoundaryEventsByNode[n.AttachedToRef], n)
+	}
+
+	// Index Subprocesses
+	for _, sub := range p.SubProcesses {
+		indexSubProcess(&sub, pp, "")
+	}
 
 	// 2. Index outflows and inflows
 	for _, flow := range p.SequenceFlows {
@@ -180,4 +287,70 @@ func indexProcess(p *Process) (*ParsedProcess, error) {
 	}
 
 	return pp, nil
+}
+
+func indexSubProcess(sub *SubProcess, pp *ParsedProcess, parentID string) {
+	pp.SubProcesses[sub.ID] = sub
+	pp.Nodes[sub.ID] = sub
+	if parentID != "" {
+		pp.ParentSubProcesses[sub.ID] = parentID
+	}
+
+	for _, n := range sub.StartEvents {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+		if sub.StartNodeID == "" {
+			sub.StartNodeID = n.ID
+		}
+	}
+	for _, n := range sub.EndEvents {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+	}
+	for _, n := range sub.ServiceTasks {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+	}
+	for _, n := range sub.Tasks {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+	}
+	for _, n := range sub.UserTasks {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+	}
+	for _, n := range sub.ReceiveTasks {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+	}
+	for _, n := range sub.IntermediateCatchEvents {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+	}
+	for _, n := range sub.ExclusiveGateways {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+	}
+	for _, n := range sub.ParallelGateways {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+	}
+	for _, n := range sub.BusinessRuleTasks {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+	}
+	for _, n := range sub.BoundaryEvents {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+		pp.BoundaryEventsByNode[n.AttachedToRef] = append(pp.BoundaryEventsByNode[n.AttachedToRef], n)
+	}
+
+	for _, inner := range sub.SubProcesses {
+		indexSubProcess(&inner, pp, sub.ID)
+	}
+
+	for _, flow := range sub.SequenceFlows {
+		pp.Outflows[flow.SourceRef] = append(pp.Outflows[flow.SourceRef], flow)
+		pp.Inflows[flow.TargetRef] = append(pp.Inflows[flow.TargetRef], flow)
+	}
 }

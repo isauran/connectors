@@ -21,4 +21,6 @@
 | WASM-16 | Рефакторинг и декомпозиция Durable WASM и ребрендинг модуля | Completed | Рефакторинг engine.go и переименование модуля durable-wasm в wasman |
 | WASM-17 | Создание модуля bpmn для BPMN 2.0 и DMN движков | Completed | Разработка Go-модуля bpmn, использующего wasman в качестве Durable WASM SDK |
 | WASM-18 | Поддержка асинхронных шагов ожидания (Wait State) | Completed | Добавление поддержки UserTask и ReceiveTask в BPMN-движке |
+| WASM-19 | Полная поддержка элементов спецификации BPMN 2.0 | Completed | Реализация Boundary Events, Subprocesses и BusinessRuleTask с интеграцией DMN |
+
 
