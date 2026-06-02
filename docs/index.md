@@ -11,6 +11,8 @@
 | WASM-07 | Хранение снапшотов в SQLite и репликация в S3 | Completed | Хранение снимков WASM в SQLite и настройка репликации через Litestream. |
 | WASM-08 | Исследование архитектуры Golem Cloud | Completed | Проведен детальный анализ архитектуры Golem Cloud (Oplog, Delta Snapshots) и ограничений SQLite. |
 | WASM-09 | Проектирование целевой масштабируемой архитектуры | Completed | Спроектирована распределенная архитектура Durable WASM (Stateless хосты, CockroachDB, Oplog, Delta Snapshots). |
+| WASM-10 | Обновление golangci-lint до v2 и статический анализ | Completed | Обновление golangci-lint до версии v2, адаптация конфигурации и запуск статического анализа. |
+
 
 
 

@@ -1,0 +1,5 @@
+- [x] Установить `golangci-lint` v2.12.2 локально
+- [x] Обновить Makefile
+- [x] Смигрировать файл конфигурации `.golangci.yml` с помощью `golangci-lint migrate`
+- [x] Запустить `make lint` и исправить ошибки, если они возникнут
+- [x] Создать итоговый отчет walkthrough.md
