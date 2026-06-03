@@ -2,6 +2,7 @@ package bpmn
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -393,4 +394,82 @@ func TestBPMNMultiInstance(t *testing.T) {
 	err = engine.Step(context.Background(), instance)
 	require.NoError(t, err)
 	assert.True(t, instance.Completed)
+}
+
+func TestCamundaExamples(t *testing.T) {
+	t.Run("loanApproval.bpmn", func(t *testing.T) {
+		xmlData, err := os.ReadFile("testdata/loanApproval.bpmn")
+		require.NoError(t, err)
+
+		pp, err := ParseBPMN(xmlData)
+		require.NoError(t, err)
+		assert.Equal(t, "loanApproval", pp.ID)
+		assert.Equal(t, "StartEvent_1", pp.StartNodeID)
+		assert.Contains(t, pp.Nodes, "ServiceTask_1")
+		assert.Contains(t, pp.Nodes, "EndEvent_1")
+
+		engine := NewEngine(pp, nil)
+		instance, err := engine.StartInstance("inst-loan", nil)
+		require.NoError(t, err)
+		assert.Contains(t, instance.ActiveTokens, "StartEvent_1")
+
+		// Step 1: StartEvent_1 -> ServiceTask_1
+		err = engine.Step(context.Background(), instance)
+		require.NoError(t, err)
+		assert.Contains(t, instance.ActiveTokens, "ServiceTask_1")
+
+		// Step 2: ServiceTask_1 -> EndEvent_1
+		err = engine.Step(context.Background(), instance)
+		require.NoError(t, err)
+		assert.Contains(t, instance.ActiveTokens, "EndEvent_1")
+
+		// Step 3: EndEvent_1 -> Complete
+		err = engine.Step(context.Background(), instance)
+		require.NoError(t, err)
+		assert.True(t, instance.Completed)
+	})
+
+	t.Run("sample.bpmn", func(t *testing.T) {
+		xmlData, err := os.ReadFile("testdata/sample.bpmn")
+		require.NoError(t, err)
+
+		pp, err := ParseBPMN(xmlData)
+		require.NoError(t, err)
+		assert.Equal(t, "Sample", pp.ID)
+		assert.Equal(t, "StartEvent_1", pp.StartNodeID)
+		assert.Contains(t, pp.Nodes, "UserTask_1")
+		assert.Contains(t, pp.Nodes, "ServiceTask_1")
+		assert.Contains(t, pp.Nodes, "EndEvent_1")
+
+		engine := NewEngine(pp, nil)
+		instance, err := engine.StartInstance("inst-sample", nil)
+		require.NoError(t, err)
+		assert.Contains(t, instance.ActiveTokens, "StartEvent_1")
+
+		// Step 1: StartEvent_1 -> UserTask_1
+		err = engine.Step(context.Background(), instance)
+		require.NoError(t, err)
+		assert.Contains(t, instance.ActiveTokens, "UserTask_1")
+
+		// Step 2: UserTask_1 -> Wait State (WaitingTokens)
+		err = engine.Step(context.Background(), instance)
+		require.NoError(t, err)
+		assert.Contains(t, instance.WaitingTokens, "UserTask_1")
+		assert.Empty(t, instance.ActiveTokens)
+
+		// Complete UserTask_1 -> moves to ServiceTask_1
+		err = engine.CompleteTask(instance, "UserTask_1", nil)
+		require.NoError(t, err)
+		assert.Contains(t, instance.ActiveTokens, "ServiceTask_1")
+
+		// Step 3: ServiceTask_1 -> EndEvent_1
+		err = engine.Step(context.Background(), instance)
+		require.NoError(t, err)
+		assert.Contains(t, instance.ActiveTokens, "EndEvent_1")
+
+		// Step 4: EndEvent_1 -> Complete
+		err = engine.Step(context.Background(), instance)
+		require.NoError(t, err)
+		assert.True(t, instance.Completed)
+	})
 }
