@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" targetNamespace="http://bpmn.io/schema/bpmn">
+  <process id="booking_saga" isExecutable="true">
+    <startEvent id="start" />
+    <sequenceFlow id="f1" sourceRef="start" targetRef="charge_payment" />
+    
+    <serviceTask id="charge_payment" name="Charge Payment" />
+    <sequenceFlow id="f2" sourceRef="charge_payment" targetRef="reserve_hotel" />
+
+    <boundaryEvent id="comp_payment_boundary" attachedToRef="charge_payment" />
+    <association id="assoc_payment" sourceRef="comp_payment_boundary" targetRef="refund_payment" />
+    <serviceTask id="refund_payment" name="Refund Payment" />
+
+    <serviceTask id="reserve_hotel" name="Reserve Hotel" />
+    <sequenceFlow id="f3" sourceRef="reserve_hotel" targetRef="checkpoint" />
+    
+    <boundaryEvent id="comp_hotel_boundary" attachedToRef="reserve_hotel" />
+    <association id="assoc_hotel" sourceRef="comp_hotel_boundary" targetRef="cancel_hotel" />
+    <serviceTask id="cancel_hotel" name="Cancel Hotel Booking" />
+
+    <userTask id="checkpoint" name="User Checkpoint" />
+    <sequenceFlow id="f4" sourceRef="checkpoint" targetRef="end" />
+    <endEvent id="end" />
+  </process>
+</definitions>

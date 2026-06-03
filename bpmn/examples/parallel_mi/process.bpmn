@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" targetNamespace="http://bpmn.io/schema/bpmn">
+  <process id="parallel_mi_process" isExecutable="true">
+    <startEvent id="start" />
+    <sequenceFlow id="f1" sourceRef="start" targetRef="mi_task" />
+    
+    <userTask id="mi_task" name="Approve Item">
+      <multiInstanceLoopCharacteristics>
+        <loopDataInputRef>items</loopDataInputRef>
+      </multiInstanceLoopCharacteristics>
+    </userTask>
+    <sequenceFlow id="f2" sourceRef="mi_task" targetRef="split" />
+
+    <inclusiveGateway id="split" name="Split paths" />
+    
+    <sequenceFlow id="flow_urgent" sourceRef="split" targetRef="task_urgent">
+      <conditionExpression>isUrgent == true</conditionExpression>
+    </sequenceFlow>
+    <serviceTask id="task_urgent" name="Process Urgent Order" />
+    <sequenceFlow id="f_u" sourceRef="task_urgent" targetRef="join" />
+
+    <sequenceFlow id="flow_standard" sourceRef="split" targetRef="task_standard">
+      <conditionExpression>isStandard == true</conditionExpression>
+    </sequenceFlow>
+    <serviceTask id="task_standard" name="Process Standard Order" />
+    <sequenceFlow id="f_s" sourceRef="task_standard" targetRef="join" />
+
+    <inclusiveGateway id="join" name="Merge paths" />
+    <sequenceFlow id="f_end" sourceRef="join" targetRef="end" />
+    <endEvent id="end" />
+  </process>
+</definitions>
