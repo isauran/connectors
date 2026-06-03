@@ -28,6 +28,7 @@
 | WASM-21 | Агрегированное S3-индексирование для Cockpit | Completed | Реализация индексного файла в S3 с OCC-блокировкой для отображения активных процессов |
 | WASM-22 | Переименование файлов SDK в Runner API | Completed | Переименование sdk.go и sdk_stub.go в runner.go и runner_stub.go, очистка упоминаний SDK |
 | WASM-23 | Вынесение гостевого раннера в отдельный пакет | Completed | Перенос runner.go и runner_stub.go в пакет wasman/runner для полной изоляции от хост-зависимостей |
+| HTTP-01 | Исправление зависания ConcurrencyMiddleware | Completed | Исправление блокировки RoundTrip при отмене контекста запроса и добавление тестов |
 
 
 
