@@ -3,7 +3,7 @@ module github.com/nativebpm/connectors/bpmn
 go 1.26
 
 require (
-	github.com/nativebpm/connectors/wasman v0.0.2
+	github.com/nativebpm/connectors/wasman v0.0.3
 	github.com/stretchr/testify v1.11.1
 )
 
