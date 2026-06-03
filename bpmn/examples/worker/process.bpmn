@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" targetNamespace="http://bpmn.io/schema/bpmn">
+  <process id="interest_calculation_process" isExecutable="true">
+    <startEvent id="start" />
+    <sequenceFlow id="f1" sourceRef="start" targetRef="calculate_interest" />
+    <serviceTask id="calculate_interest" name="Calculate Interest" topic="calculateInterest" />
+    <sequenceFlow id="f2" sourceRef="calculate_interest" targetRef="apply_interest" />
+    <serviceTask id="apply_interest" name="Apply Interest to Account" topic="applyInterest" />
+    <sequenceFlow id="f3" sourceRef="apply_interest" targetRef="end" />
+    <endEvent id="end" />
+  </process>
+</definitions>

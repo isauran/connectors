@@ -25,20 +25,30 @@ type ProcessInstance struct {
 	Completed      bool                   `json:"completed"`
 }
 
+// ServiceTaskHandler is a function that executes a service task and can read/write process instance variables.
+type ServiceTaskHandler func(ctx context.Context, instance *ProcessInstance, task ServiceTask) error
+
 // Engine coordinates the execution of BPMN processes.
 type Engine struct {
-	Process      *ParsedProcess
-	WasmanEngine *wasman.Engine
-	DMNs         map[string]*DMNDefinitions // decisionRef -> DMNDefinitions
+	Process             *ParsedProcess
+	WasmanEngine        *wasman.Engine
+	DMNs                map[string]*DMNDefinitions    // decisionRef -> DMNDefinitions
+	ServiceTaskHandlers map[string]ServiceTaskHandler // topic -> handler
 }
 
 // NewEngine creates a new process engine for a parsed process definition.
 func NewEngine(process *ParsedProcess, wasmanEngine *wasman.Engine) *Engine {
 	return &Engine{
-		Process:      process,
-		WasmanEngine: wasmanEngine,
-		DMNs:         make(map[string]*DMNDefinitions),
+		Process:             process,
+		WasmanEngine:        wasmanEngine,
+		DMNs:                make(map[string]*DMNDefinitions),
+		ServiceTaskHandlers: make(map[string]ServiceTaskHandler),
 	}
+}
+
+// RegisterServiceTaskHandler registers a custom handler function for service tasks with a matching Topic name.
+func (e *Engine) RegisterServiceTaskHandler(topic string, handler ServiceTaskHandler) {
+	e.ServiceTaskHandlers[topic] = handler
 }
 
 // RegisterDMN registers a parsed DMN definition to be evaluated by BusinessRuleTasks.
@@ -170,7 +180,15 @@ func (e *Engine) Step(ctx context.Context, instance *ProcessInstance) error {
 
 	case ServiceTask:
 		slog.Info("[BPMN ENGINE] Executing ServiceTask", "node_id", currentToken, "base_node", n.ID, "name", n.Name)
-		if n.WasmPath != "" && e.WasmanEngine != nil {
+		if handler, ok := e.ServiceTaskHandlers[n.Topic]; ok {
+			slog.Info("[BPMN ENGINE] Executing local service task handler", "topic", n.Topic, "node_id", currentToken)
+			err := handler(ctx, instance, n)
+			if err != nil {
+				// Re-insert token so we can retry or investigate
+				instance.ActiveTokens = append([]string{currentToken}, instance.ActiveTokens...)
+				return fmt.Errorf("failed to execute local handler for service task %s (topic: %s): %w", currentToken, n.Topic, err)
+			}
+		} else if n.WasmPath != "" && e.WasmanEngine != nil {
 			err := e.executeWasmTask(ctx, instance, n)
 			if err != nil {
 				// Re-insert token so we can retry or investigate
@@ -178,7 +196,7 @@ func (e *Engine) Step(ctx context.Context, instance *ProcessInstance) error {
 				return fmt.Errorf("failed to execute WASM task %s: %w", currentToken, err)
 			}
 		} else {
-			slog.Info("[BPMN ENGINE] ServiceTask executed as noop (no WASM path configured)", "node_id", currentToken)
+			slog.Info("[BPMN ENGINE] ServiceTask executed as noop (no local handler or WASM path configured)", "node_id", currentToken)
 		}
 		
 		if isMultiInstanceCopy {

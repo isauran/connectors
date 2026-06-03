@@ -318,4 +318,49 @@ func TestBPMNWaitStates(t *testing.T) {
 	assert.True(t, instance.Completed)
 }
 
+const serviceTaskBPMN = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" targetNamespace="http://bpmn.io/schema/bpmn">
+  <process id="service_process" isExecutable="true">
+    <startEvent id="start" />
+    <sequenceFlow id="flow1" sourceRef="start" targetRef="service_task" />
+    <serviceTask id="service_task" name="Service Task Worker" topic="calculateInterest" />
+    <sequenceFlow id="flow2" sourceRef="service_task" targetRef="end" />
+    <endEvent id="end" />
+  </process>
+</definitions>`
 
+func TestBPMNServiceTaskLocalHandler(t *testing.T) {
+	pp, err := ParseBPMN([]byte(serviceTaskBPMN))
+	require.NoError(t, err)
+
+	engine := NewEngine(pp, nil)
+
+	handlerCalled := false
+	engine.RegisterServiceTaskHandler("calculateInterest", func(ctx context.Context, instance *ProcessInstance, task ServiceTask) error {
+		handlerCalled = true
+		assert.Equal(t, "service_task", task.ID)
+		assert.Equal(t, "calculateInterest", task.Topic)
+		instance.Variables["interest_rate"] = 0.05
+		return nil
+	})
+
+	instance, err := engine.StartInstance("instance-service", nil)
+	require.NoError(t, err)
+
+	// Step 1: Start -> service_task
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.Contains(t, instance.ActiveTokens, "service_task")
+
+	// Step 2: Executes service_task handler -> moves to end
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.True(t, handlerCalled)
+	assert.Equal(t, 0.05, instance.Variables["interest_rate"])
+	assert.Contains(t, instance.ActiveTokens, "end")
+
+	// Step 3: end -> complete
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+	assert.True(t, instance.Completed)
+}
