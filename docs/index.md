@@ -2,6 +2,8 @@
 
 | ID | Title | Status | Semantic Summary |
 |:---|:---|:---|:---|
+| CAM-02 | Полноценный пример с Sequin CDC воркером | Completed | Создан пример использования Sequin CDC воркера для обработки задач кредитного конвейера |
+| CAM-03 | Outbox CDC пример без REST-запросов к Camunda | Completed | Создание примера с использованием триггера авто-блокировки БД и Sequin SQL Enrichment |
 | SEC-01 | Безопасность интеграции с Camunda и Temporal | Completed | Реализовано шифрование Payload (Zero-Trust) и Codec Server для админки Temporal |
 | TEMP-02 | Пример демонстрации Activity Heartbeats в Temporal | Completed | Создан пример для демонстрации Activity Heartbeats в Go SDK с восстановлением прогресса |
 | TEL-03 | Драйвер Telegram Bot API для httpstream | Completed | Создание коннектора для Telegram Bot API с поддержкой потоковой загрузки медиа |

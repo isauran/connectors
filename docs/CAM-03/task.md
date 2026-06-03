@@ -1,0 +1,21 @@
+# CAM-03 Checklist
+
+- [x] Модификация ядра коннектора (`camunda_sequin.go`)
+  - [x] Добавить поля `sequinURL`, `token` и `httpClient` в `SequinWorker`
+  - [x] Инициализировать их в `NewSequinWorker`
+  - [x] Объявить типы `sequinMessagePayload` и `receiveResponsePayload`
+  - [x] Переписать метод `receiveMessages` для парсинга полного JSON (включая `metadata`)
+  - [x] Обновить метод `processMessage` для поддержки адаптивного CDC-режима (zero-lookup)
+- [x] Обновление примера `loan-granting-cdc-outbox` (`main.go`)
+  - [x] Удалить локальные структуры `OutboxWorker`, `SequinMessage`, `extTaskRow` и их методы
+  - [x] Заменить на использование штатного `camunda.NewSequinWorker`
+- [x] Верификация сборки и тестов
+  - [x] Собрать проект с помощью `go build ./camunda/...`
+  - [x] Проверить существующие тесты: `go test -v ./camunda`
+- [x] Локальное сквозное тестирование (End-to-End)
+  - [x] Запустить окружение с помощью `make camunda` в `camunda/`
+  - [x] Запустить пример: `go run camunda/examples/loan-granting-cdc-outbox/main.go`
+  - [x] Проверить успешное прохождение всех 5 процессов без REST-вызовов Lock и GetVariables
+- [x] Обновление документации задачи
+  - [x] Обновить `docs/CAM-03/task.md`
+  - [x] Обновить `docs/CAM-03/walkthrough.md`
