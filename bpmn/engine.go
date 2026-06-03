@@ -82,7 +82,9 @@ func (e *Engine) StartInstance(id string, variables map[string]interface{}) (*Pr
 // Step advances the execution of active tokens in the process instance.
 func (e *Engine) Step(ctx context.Context, instance *ProcessInstance) error {
 	err := e.stepInternal(ctx, instance)
-	e.syncIndex(instance)
+	if err == nil {
+		e.syncIndex(instance)
+	}
 	return err
 }
 
@@ -381,7 +383,9 @@ func (e *Engine) stepInternal(ctx context.Context, instance *ProcessInstance) er
 // CompleteTask resumes a process instance paused at a wait state (UserTask, ReceiveTask, or IntermediateCatchEvent).
 func (e *Engine) CompleteTask(instance *ProcessInstance, nodeID string, variables map[string]interface{}) error {
 	err := e.completeTaskInternal(instance, nodeID, variables)
-	e.syncIndex(instance)
+	if err == nil {
+		e.syncIndex(instance)
+	}
 	return err
 }
 
@@ -425,7 +429,9 @@ func (e *Engine) completeTaskInternal(instance *ProcessInstance, nodeID string, 
 // CorrelateMessage correlates a message to trigger an Event Subprocess, Boundary Event or ReceiveTask.
 func (e *Engine) CorrelateMessage(instance *ProcessInstance, messageRef string, variables map[string]interface{}) error {
 	err := e.correlateMessageInternal(instance, messageRef, variables)
-	e.syncIndex(instance)
+	if err == nil {
+		e.syncIndex(instance)
+	}
 	return err
 }
 
@@ -525,7 +531,9 @@ func (e *Engine) correlateMessageInternal(instance *ProcessInstance, messageRef 
 // BroadcastSignal broadcasts a signal to all listening handlers (triggers StartEvents, BoundaryEvents, and CatchEvents).
 func (e *Engine) BroadcastSignal(instance *ProcessInstance, signalRef string, variables map[string]interface{}) error {
 	err := e.broadcastSignalInternal(instance, signalRef, variables)
-	e.syncIndex(instance)
+	if err == nil {
+		e.syncIndex(instance)
+	}
 	return err
 }
 
@@ -627,7 +635,9 @@ func (e *Engine) broadcastSignalInternal(instance *ProcessInstance, signalRef st
 // TriggerCompensation executes the compensation activity associated with the completed task.
 func (e *Engine) TriggerCompensation(instance *ProcessInstance, activityID string) error {
 	err := e.triggerCompensationInternal(instance, activityID)
-	e.syncIndex(instance)
+	if err == nil {
+		e.syncIndex(instance)
+	}
 	return err
 }
 
@@ -685,7 +695,9 @@ func (e *Engine) triggerCompensationInternal(instance *ProcessInstance, activity
 // HandleError propagates a BPMN error thrown by a task to trigger a Boundary Error Event.
 func (e *Engine) HandleError(instance *ProcessInstance, nodeID string, errorCode string, variables map[string]interface{}) error {
 	err := e.handleErrorInternal(instance, nodeID, errorCode, variables)
-	e.syncIndex(instance)
+	if err == nil {
+		e.syncIndex(instance)
+	}
 	return err
 }
 
