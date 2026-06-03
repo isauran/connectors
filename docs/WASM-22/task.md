@@ -1,0 +1,13 @@
+- [x] Создать и переименовать файлы
+    - [x] Создать `connectors/wasman/runner.go` на основе `sdk.go` с изменениями
+    - [x] Создать `connectors/wasman/runner_stub.go` на основе `sdk_stub.go` с изменениями
+    - [x] Удалить `connectors/wasman/sdk.go`
+    - [x] Удалить `connectors/wasman/sdk_stub.go`
+- [x] Обновить упоминания в документации
+    - [x] Обновить `connectors/docs/WASM-15/walkthrough.md`
+    - [x] Обновить `connectors/docs/WASM-16/task.md`
+- [x] Проверить сборку и тесты
+    - [x] Собрать WASM-воркеры (`make -C wasman build-worker`)
+    - [x] Запустить тесты `wasman` (`make -C wasman test`)
+    - [x] Собрать воркеры в BPMN (`make -C bpmn/examples/orchestration build-worker`)
+    - [x] Запустить тесты `bpmn` (`go test -v ./bpmn/...`)

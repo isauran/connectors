@@ -17,8 +17,8 @@
   - [x] `wasman/engine.go`
   - [x] `wasman/fs_store.go`
   - [x] `wasman/s3_store.go`
-  - [x] `wasman/sdk.go`
-  - [x] `wasman/sdk_stub.go`
+  - [x] `wasman/runner.go`
+  - [x] `wasman/runner_stub.go`
   - [x] `wasman/engine_test.go`
   - [x] `wasman/engine_bench_test.go`
 - [x] Обновить импорты во всех примерах (`wasman/examples/...`)

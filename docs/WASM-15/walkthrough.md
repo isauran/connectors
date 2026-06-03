@@ -5,12 +5,12 @@
 ## Список изменений
 
 1. **Создание Fluent API в Go SDK:**
-   - Реализован файл [sdk.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/sdk.go) для среды WASM (`//go:build wasm`), декларирующий низкоуровневые импорты.
+   - Реализован файл [runner.go](file:///Users/user/github.com/nativebpm/connectors/wasman/runner.go) для среды WASM (`//go:build wasm`), декларирующий низкоуровневые импорты.
    - Реализована простая, не-дженериковая структура `Workflow` с методами:
      - `NewWorkflow()`: инициализирует новый fluent-раннер.
      - `.Step(step func() error)`: добавляет шаг в виде связанного метода экземпляра состояния (например, `state.checkInventory`).
      - `.Run()`: запускает выполнение шагов последовательно с автоматической фиксацией чекпоинтов после каждого шага.
-   - Создана заглушка [sdk_stub.go](file:///Users/user/github.com/nativebpm/connectors/durable-wasm/sdk_stub.go) с флагом `//go:build !wasm` для успешной сборки хоста.
+   - Создана заглушка [runner_stub.go](file:///Users/user/github.com/nativebpm/connectors/wasman/runner_stub.go) с флагом `//go:build !wasm` для успешной сборки хоста.
 
 2. **Статическая инициализация состояния и удаление дженериков:**
    - Состояние воркфлоу инициализируется классическим для Go статическим способом при объявлении глобальной переменной:
