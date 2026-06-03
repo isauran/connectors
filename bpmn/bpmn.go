@@ -9,10 +9,12 @@ import (
 
 // Definitions represents the root element of a BPMN XML document.
 type Definitions struct {
-	XMLName   xml.Name  `xml:"definitions"`
-	Processes []Process `xml:"process"`
-	Messages  []Message `xml:"message"`
-	Errors    []Error   `xml:"error"`
+	XMLName      xml.Name      `xml:"definitions"`
+	Processes    []Process     `xml:"process"`
+	Messages     []Message     `xml:"message"`
+	Errors       []Error       `xml:"error"`
+	Signals      []Signal      `xml:"signal"`
+	Associations []Association `xml:"association"` // We can also parse associations inside <process>
 }
 
 // Message represents a global BPMN message definition.
@@ -26,6 +28,19 @@ type Error struct {
 	ID        string `xml:"id,attr"`
 	Name      string `xml:"name,attr"`
 	ErrorCode string `xml:"errorCode,attr"`
+}
+
+// Signal represents a global BPMN signal definition.
+type Signal struct {
+	ID   string `xml:"id,attr"`
+	Name string `xml:"name,attr"`
+}
+
+// Association represents a link between elements (e.g. boundary compensation event to task).
+type Association struct {
+	ID        string `xml:"id,attr"`
+	SourceRef string `xml:"sourceRef,attr"`
+	TargetRef string `xml:"targetRef,attr"`
 }
 
 // Process represents a BPMN process definition.
@@ -43,9 +58,11 @@ type Process struct {
 	SequenceFlows           []SequenceFlow           `xml:"sequenceFlow"`
 	ExclusiveGateways       []ExclusiveGateway       `xml:"exclusiveGateway"`
 	ParallelGateways        []ParallelGateway        `xml:"parallelGateway"`
+	InclusiveGateways       []InclusiveGateway       `xml:"inclusiveGateway"`
 	BusinessRuleTasks       []BusinessRuleTask       `xml:"businessRuleTask"`
 	BoundaryEvents          []BoundaryEvent          `xml:"boundaryEvent"`
 	SubProcesses            []SubProcess             `xml:"subProcess"`
+	Associations            []Association            `xml:"association"`
 }
 
 // StartEvent represents a BPMN start event.
@@ -54,6 +71,7 @@ type StartEvent struct {
 	Name                   string                  `xml:"name,attr"`
 	IsInterrupting         bool                    `xml:"isInterrupting,attr"` // for event subprocess start events
 	MessageEventDefinition *MessageEventDefinition `xml:"messageEventDefinition"`
+	SignalEventDefinition  *SignalEventDefinition  `xml:"signalEventDefinition"`
 }
 
 // EndEvent represents a BPMN end event.
@@ -64,39 +82,45 @@ type EndEvent struct {
 
 // ServiceTask represents a BPMN service task.
 type ServiceTask struct {
-	ID           string `xml:"id,attr"`
-	Name         string `xml:"name,attr"`
-	Topic        string `xml:"topic,attr"`
-	WasmPath     string `xml:"wasmPath,attr"` // Custom attribute for wasman orchestration
-	CamundaTopic string `xml:"type,attr"`
+	ID                           string                            `xml:"id,attr"`
+	Name                         string                            `xml:"name,attr"`
+	Topic                        string                            `xml:"topic,attr"`
+	WasmPath                     string                            `xml:"wasmPath,attr"` // Custom attribute for wasman orchestration
+	CamundaTopic                 string                            `xml:"type,attr"`
+	MultiInstanceCharacteristics *MultiInstanceLoopCharacteristics `xml:"multiInstanceLoopCharacteristics"`
 }
 
 // UserTask represents a BPMN user task (wait state).
 type UserTask struct {
-	ID   string `xml:"id,attr"`
-	Name string `xml:"name,attr"`
+	ID                           string                            `xml:"id,attr"`
+	Name                         string                            `xml:"name,attr"`
+	MultiInstanceCharacteristics *MultiInstanceLoopCharacteristics `xml:"multiInstanceLoopCharacteristics"`
 }
 
 // ReceiveTask represents a BPMN receive task (wait state for a message).
 type ReceiveTask struct {
-	ID         string `xml:"id,attr"`
-	Name       string `xml:"name,attr"`
-	MessageRef string `xml:"messageRef,attr"`
+	ID                           string                            `xml:"id,attr"`
+	Name                         string                            `xml:"name,attr"`
+	MessageRef                   string                            `xml:"messageRef,attr"`
+	MultiInstanceCharacteristics *MultiInstanceLoopCharacteristics `xml:"multiInstanceLoopCharacteristics"`
 }
 
 // IntermediateCatchEvent represents an intermediate catch event (e.g. message wait).
 type IntermediateCatchEvent struct {
-	ID   string `xml:"id,attr"`
-	Name string `xml:"name,attr"`
+	ID                     string                  `xml:"id,attr"`
+	Name                   string                  `xml:"name,attr"`
+	MessageEventDefinition *MessageEventDefinition `xml:"messageEventDefinition"`
+	SignalEventDefinition  *SignalEventDefinition  `xml:"signalEventDefinition"`
 }
 
 // BusinessRuleTask represents a BPMN business rule task calling DMN.
 type BusinessRuleTask struct {
-	ID                string `xml:"id,attr"`
-	Name              string `xml:"name,attr"`
-	DecisionRef       string `xml:"decisionRef,attr"`
-	MapDecisionResult string `xml:"mapDecisionResult,attr"`
-	ResultVariable    string `xml:"resultVariable,attr"`
+	ID                           string                            `xml:"id,attr"`
+	Name                         string                            `xml:"name,attr"`
+	DecisionRef                  string                            `xml:"decisionRef,attr"`
+	MapDecisionResult            string                            `xml:"mapDecisionResult,attr"`
+	ResultVariable               string                            `xml:"resultVariable,attr"`
+	MultiInstanceCharacteristics *MultiInstanceLoopCharacteristics `xml:"multiInstanceLoopCharacteristics"`
 }
 
 // BoundaryEvent represents a BPMN boundary event attached to a task.
@@ -104,9 +128,16 @@ type BoundaryEvent struct {
 	ID                     string                  `xml:"id,attr"`
 	Name                   string                  `xml:"name,attr"`
 	AttachedToRef          string                  `xml:"attachedToRef,attr"`
+	CancelActivityStr      string                  `xml:"cancelActivity,attr"` // "true" or "false"
 	TimerEventDefinition   *TimerEventDefinition   `xml:"timerEventDefinition"`
 	MessageEventDefinition *MessageEventDefinition `xml:"messageEventDefinition"`
 	ErrorEventDefinition   *ErrorEventDefinition   `xml:"errorEventDefinition"`
+	SignalEventDefinition  *SignalEventDefinition  `xml:"signalEventDefinition"`
+}
+
+// IsInterrupting returns true if the boundary event interrupts the activity (default true).
+func (b BoundaryEvent) IsInterrupting() bool {
+	return b.CancelActivityStr != "false"
 }
 
 // TimerEventDefinition defines a timer trigger duration.
@@ -124,6 +155,23 @@ type ErrorEventDefinition struct {
 	ErrorRef string `xml:"errorRef,attr"`
 }
 
+// SignalEventDefinition defines a signal trigger reference.
+type SignalEventDefinition struct {
+	SignalRef string `xml:"signalRef,attr"`
+}
+
+// MultiInstanceLoopCharacteristics defines loop parameters.
+type MultiInstanceLoopCharacteristics struct {
+	IsSequentialStr   string `xml:"isSequential,attr"`
+	LoopDataInputRef  string `xml:"loopDataInputRef"`
+	LoopDataOutputRef string `xml:"loopDataOutputRef"`
+}
+
+// IsSequential returns true if loop is sequential.
+func (m MultiInstanceLoopCharacteristics) IsSequential() bool {
+	return m.IsSequentialStr == "true"
+}
+
 // SubProcess represents an embedded subprocess block.
 type SubProcess struct {
 	ID                      string                   `xml:"id,attr"`
@@ -139,9 +187,11 @@ type SubProcess struct {
 	SequenceFlows           []SequenceFlow           `xml:"sequenceFlow"`
 	ExclusiveGateways       []ExclusiveGateway       `xml:"exclusiveGateway"`
 	ParallelGateways        []ParallelGateway        `xml:"parallelGateway"`
+	InclusiveGateways       []InclusiveGateway       `xml:"inclusiveGateway"`
 	BusinessRuleTasks       []BusinessRuleTask       `xml:"businessRuleTask"`
 	SubProcesses            []SubProcess             `xml:"subProcess"`
 	BoundaryEvents          []BoundaryEvent          `xml:"boundaryEvent"`
+	Associations            []Association            `xml:"association"`
 
 	// Internal execution cache
 	StartNodeID             string
@@ -173,6 +223,12 @@ type ParallelGateway struct {
 	Name string `xml:"name,attr"`
 }
 
+// InclusiveGateway represents an inclusive decision/merge point (OR gateway).
+type InclusiveGateway struct {
+	ID   string `xml:"id,attr"`
+	Name string `xml:"name,attr"`
+}
+
 // ParsedProcess is an indexed representation of a process layout for fast navigation.
 type ParsedProcess struct {
 	ID                   string
@@ -186,6 +242,8 @@ type ParsedProcess struct {
 	BoundaryEventsByNode map[string][]BoundaryEvent // nodeID -> BoundaryEvents
 	Messages             map[string]string          // MessageID -> MessageName
 	Errors               map[string]string          // ErrorID -> ErrorCode
+	Signals              map[string]string          // SignalID -> SignalName
+	Associations         []Association              // List of associations (for compensation tasks)
 }
 
 // ParseBPMN parses raw BPMN XML data and indexes the first executable process found.
@@ -226,15 +284,21 @@ func indexProcess(p *Process, defs *Definitions) (*ParsedProcess, error) {
 		BoundaryEventsByNode: make(map[string][]BoundaryEvent),
 		Messages:             make(map[string]string),
 		Errors:               make(map[string]string),
+		Signals:              make(map[string]string),
 	}
 
-	// Index global messages and errors
+	// Index global definitions
 	for _, msg := range defs.Messages {
 		pp.Messages[msg.ID] = msg.Name
 	}
 	for _, err := range defs.Errors {
 		pp.Errors[err.ID] = err.ErrorCode
 	}
+	for _, sig := range defs.Signals {
+		pp.Signals[sig.ID] = sig.Name
+	}
+	pp.Associations = append(pp.Associations, defs.Associations...)
+	pp.Associations = append(pp.Associations, p.Associations...)
 
 	// 1. Index all nodes
 	for _, n := range p.StartEvents {
@@ -267,6 +331,9 @@ func indexProcess(p *Process, defs *Definitions) (*ParsedProcess, error) {
 	for _, n := range p.ParallelGateways {
 		pp.Nodes[n.ID] = n
 	}
+	for _, n := range p.InclusiveGateways {
+		pp.Nodes[n.ID] = n
+	}
 	for _, n := range p.BusinessRuleTasks {
 		pp.Nodes[n.ID] = n
 	}
@@ -295,6 +362,7 @@ func indexSubProcess(sub *SubProcess, pp *ParsedProcess, parentID string) {
 	if parentID != "" {
 		pp.ParentSubProcesses[sub.ID] = parentID
 	}
+	pp.Associations = append(pp.Associations, sub.Associations...)
 
 	for _, n := range sub.StartEvents {
 		pp.Nodes[n.ID] = n
@@ -332,6 +400,10 @@ func indexSubProcess(sub *SubProcess, pp *ParsedProcess, parentID string) {
 		pp.ParentSubProcesses[n.ID] = sub.ID
 	}
 	for _, n := range sub.ParallelGateways {
+		pp.Nodes[n.ID] = n
+		pp.ParentSubProcesses[n.ID] = sub.ID
+	}
+	for _, n := range sub.InclusiveGateways {
 		pp.Nodes[n.ID] = n
 		pp.ParentSubProcesses[n.ID] = sub.ID
 	}

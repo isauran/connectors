@@ -1,0 +1,23 @@
+# WASM-20 Task Checklist
+
+- `[x]` Расширение моделей BPMN в [bpmn.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/bpmn.go)
+  - `[x]` Добавить структуру `InclusiveGateway`
+  - `[x]` Добавить структуры `Signal` и `SignalEventDefinition`
+  - `[x]` Добавить структуру `Association` (для компенсаций)
+  - `[x]` Добавить структуру `MultiInstanceLoopCharacteristics`
+  - `[x]` Обновить структуру `Definitions`, `Process` и `ParsedProcess`
+  - `[x]` Обновить `indexProcess`/`indexSubProcess` для поддержки новых полей
+- `[x]` Логика выполнения в движке в [engine.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/engine.go)
+  - `[x]` Добавить поле `CompletedTasks` в `ProcessInstance` для истории
+  - `[x]` Реализовать логику `InclusiveGateway` (Split и OR-Join с BFS проверкой путей)
+  - `[x]` Доработать `CorrelateMessage` и `HandleError` для поддержки не-прерывающих событий (`cancelActivity="false"`)
+  - `[x]` Реализовать метод `BroadcastSignal` для широковещательных сигналов (добавлена поддержка Event Subprocess)
+  - `[x]` Реализовать метод `TriggerCompensation` для транзакционных откатов (саг)
+  - `[x]` Реализовать базовую поддержку мульти-инстансов `MultiInstanceLoopCharacteristics`
+- `[x]` Написание тестов в [advanced_test.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/advanced_test.go)
+  - `[x]` Тест инклюзивного шлюза (Inclusive Gateway)
+  - `[x]` Тест не-прерывающих граничных событий
+  - `[x]` Тест сигналов (Signal Broadcast)
+  - `[x]` Тест компенсации (Saga Pattern)
+  - `[x]` Тест мульти-инстансов (MI Tasks)
+- `[x]` Верификация сборки и прогона тестов
