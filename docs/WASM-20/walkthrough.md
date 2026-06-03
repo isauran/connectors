@@ -1,6 +1,6 @@
 # Walkthrough: WASM-20 — Реализация расширенной спецификации BPMN 2.0
 
-В ходе выполнения задачи была полностью протестирована и финализирована поддержка расширенных элементов BPMN 2.0 в Go-модуле `bpmn`. Также проведено тестирование на реальных BPMN-схемах от Camunda.
+В ходе выполнения задачи была полностью протестирована и финализирована поддержка расширенных элементов BPMN 2.0 в Go-модуле `bpmn`. Также добавлены новые исполняемые примеры процессов.
 
 ## Изменения
 
@@ -15,10 +15,15 @@
 - **Компенсации (Saga)**: Проверяет вызов компенсирующей задачи, связанной через Association, с отслеживанием истории завершенных задач (`CompletedTasks`).
 - **Мульти-инстансы**: Проверяет инициализацию параллельных копий задач по коллекции (`loopDataInputRef`) с последующим сбором токенов на виртуальном Parallel Join (`#join`).
 - **Тесты на схемах Camunda (TestCamundaExamples)**: 
-  - Скачаны реальные схемы `loanApproval.bpmn` and `sample.bpmn` с официальных примеров Camunda.
+  - Скачаны реальные схемы `loanApproval.bpmn` и `sample.bpmn` с официальных примеров Camunda.
   - Написаны тесты, проверяющие корректность парсинга XML с пространствами имен (включая префикс `bpmn2:`), а также корректность прохождения токенов через ServiceTask и асинхронные шаги ожидания (UserTask Wait State).
 
-### 3. Исправление GitHub Workflow
+### 3. Новые примеры (Examples)
+В директорию [bpmn/examples](file:///Users/user/github.com/nativebpm/connectors/bpmn/examples) добавлены новые исполняемые сценарии:
+- **[saga](file:///Users/user/github.com/nativebpm/connectors/bpmn/examples/saga)**: Демонстрирует Saga Pattern для компенсации транзакций. Симулирует сбой бронирования и выполняет откат ранее выполненных шагов (возврат средств, отмена брони) с помощью механизма компенсации.
+- **[parallel_mi](file:///Users/user/github.com/nativebpm/connectors/bpmn/examples/parallel_mi)**: Демонстрирует параллельные мульти-инстанс задачи и слияние путей на OR-шлюзе (Inclusive Gateway).
+
+### 4. Исправление GitHub Workflow
 - В файле [.github/workflows/publish-module-release.yml](file:///Users/user/github.com/nativebpm/connectors/.github/workflows/publish-module-release.yml) исправлен шаг извлечения аннотации тега. Ранее при создании обычного (lightweight) тега команда `git cat-file tag` падала с ошибкой 128, что приводило к сбою шага из-за pipefail. Теперь тип тега проверяется безопасно через `git cat-file -t`.
 
 ---
