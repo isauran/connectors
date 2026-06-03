@@ -25,6 +25,7 @@
 | WASM-18 | Поддержка асинхронных шагов ожидания (Wait State) | Completed | Добавление поддержки UserTask и ReceiveTask в BPMN-движке |
 | WASM-19 | Полная поддержка элементов спецификации BPMN 2.0 | Completed | Реализация Boundary Events, Subprocesses и BusinessRuleTask с интеграцией DMN |
 | WASM-20 | Реализация расширенной спецификации BPMN 2.0 | Completed | Добавление Inclusive Gateway, не-прерывающих событий, сигналов, компенсаций и MI |
+| WASM-21 | Агрегированное S3-индексирование для Cockpit | Completed | Реализация индексного файла в S3 с OCC-блокировкой для отображения активных процессов |
 
 
 

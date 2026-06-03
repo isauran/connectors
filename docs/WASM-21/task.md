@@ -1,0 +1,26 @@
+# WASM-21 Checklist
+
+- [x] Реализация агрегированного S3-индекса в `wasman`
+  - [x] Добавить методы `UpdateActiveIndex` и `LoadActiveIndex` в интерфейс `SnapshotStore` ([types.go](file:///Users/user/github.com/nativebpm/connectors/wasman/types.go))
+  - [x] Добавить геттер `Store()` в `Engine` ([wasman.go](file:///Users/user/github.com/nativebpm/connectors/wasman/wasman.go))
+  - [x] Реализовать методы в `S3SnapshotStore` ([s3_store.go](file:///Users/user/github.com/nativebpm/connectors/wasman/s3_store.go)) с поддержкой OCC-коллизий (If-Match) и 5 попытками ретраев
+  - [x] Реализовать методы в `FileSnapshotStore` ([fs_store.go](file:///Users/user/github.com/nativebpm/connectors/wasman/fs_store.go))
+- [x] Интеграция авто-синхронизации индекса в `bpmn.Engine`
+  - [x] Добавить метод `syncIndex(instance *ProcessInstance)` в [engine.go](file:///Users/user/github.com/nativebpm/connectors/bpmn/engine.go)
+  - [x] Добавить вызов `syncIndex` во все ключевые точки мутации состояния:
+    - [x] `StartInstance`
+    - [x] `Step`
+    - [x] `CompleteTask`
+    - [x] `CorrelateMessage`
+    - [x] `BroadcastSignal`
+    - [x] `HandleError`
+- [x] Верификация сборки и тестов
+  - [x] Добавить unit-тесты для `UpdateActiveIndex` в [engine_test.go](file:///Users/user/github.com/nativebpm/connectors/wasman/engine_test.go)
+  - [x] Прогнать тесты модуля `wasman`
+  - [x] Прогнать тесты модуля `bpmn`
+- [x] Ручная верификация
+  - [x] Запустить пример `bpmn/examples/worker/main.go` / `bpmn/examples/orchestration/host/main.go`
+  - [x] Убедиться, что файл `active_index.json` успешно создается, обновляется и очищается на диске по завершении процесса
+- [x] Оформление результатов
+  - [x] Создать `docs/WASM-21/walkthrough.md`
+  - [x] Закомитить изменения

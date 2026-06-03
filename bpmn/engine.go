@@ -75,11 +75,18 @@ func (e *Engine) StartInstance(id string, variables map[string]interface{}) (*Pr
 		Completed:      false,
 	}
 
+	e.syncIndex(instance)
 	return instance, nil
 }
 
 // Step advances the execution of active tokens in the process instance.
 func (e *Engine) Step(ctx context.Context, instance *ProcessInstance) error {
+	err := e.stepInternal(ctx, instance)
+	e.syncIndex(instance)
+	return err
+}
+
+func (e *Engine) stepInternal(ctx context.Context, instance *ProcessInstance) error {
 	if instance.Completed {
 		return nil
 	}
@@ -373,6 +380,12 @@ func (e *Engine) Step(ctx context.Context, instance *ProcessInstance) error {
 
 // CompleteTask resumes a process instance paused at a wait state (UserTask, ReceiveTask, or IntermediateCatchEvent).
 func (e *Engine) CompleteTask(instance *ProcessInstance, nodeID string, variables map[string]interface{}) error {
+	err := e.completeTaskInternal(instance, nodeID, variables)
+	e.syncIndex(instance)
+	return err
+}
+
+func (e *Engine) completeTaskInternal(instance *ProcessInstance, nodeID string, variables map[string]interface{}) error {
 	found := false
 	for i, t := range instance.WaitingTokens {
 		if t == nodeID {
@@ -411,6 +424,12 @@ func (e *Engine) CompleteTask(instance *ProcessInstance, nodeID string, variable
 
 // CorrelateMessage correlates a message to trigger an Event Subprocess, Boundary Event or ReceiveTask.
 func (e *Engine) CorrelateMessage(instance *ProcessInstance, messageRef string, variables map[string]interface{}) error {
+	err := e.correlateMessageInternal(instance, messageRef, variables)
+	e.syncIndex(instance)
+	return err
+}
+
+func (e *Engine) correlateMessageInternal(instance *ProcessInstance, messageRef string, variables map[string]interface{}) error {
 	if instance.Completed {
 		return fmt.Errorf("process instance already completed")
 	}
@@ -505,6 +524,12 @@ func (e *Engine) CorrelateMessage(instance *ProcessInstance, messageRef string, 
 
 // BroadcastSignal broadcasts a signal to all listening handlers (triggers StartEvents, BoundaryEvents, and CatchEvents).
 func (e *Engine) BroadcastSignal(instance *ProcessInstance, signalRef string, variables map[string]interface{}) error {
+	err := e.broadcastSignalInternal(instance, signalRef, variables)
+	e.syncIndex(instance)
+	return err
+}
+
+func (e *Engine) broadcastSignalInternal(instance *ProcessInstance, signalRef string, variables map[string]interface{}) error {
 	if instance.Completed {
 		return fmt.Errorf("process instance already completed")
 	}
@@ -601,6 +626,12 @@ func (e *Engine) BroadcastSignal(instance *ProcessInstance, signalRef string, va
 
 // TriggerCompensation executes the compensation activity associated with the completed task.
 func (e *Engine) TriggerCompensation(instance *ProcessInstance, activityID string) error {
+	err := e.triggerCompensationInternal(instance, activityID)
+	e.syncIndex(instance)
+	return err
+}
+
+func (e *Engine) triggerCompensationInternal(instance *ProcessInstance, activityID string) error {
 	// Find boundary compensation event associated with the completed activity
 	var boundaryCompEventID string
 	if bEvents, exists := e.Process.BoundaryEventsByNode[activityID]; exists {
@@ -653,6 +684,12 @@ func (e *Engine) TriggerCompensation(instance *ProcessInstance, activityID strin
 
 // HandleError propagates a BPMN error thrown by a task to trigger a Boundary Error Event.
 func (e *Engine) HandleError(instance *ProcessInstance, nodeID string, errorCode string, variables map[string]interface{}) error {
+	err := e.handleErrorInternal(instance, nodeID, errorCode, variables)
+	e.syncIndex(instance)
+	return err
+}
+
+func (e *Engine) handleErrorInternal(instance *ProcessInstance, nodeID string, errorCode string, variables map[string]interface{}) error {
 	if instance.Completed {
 		return fmt.Errorf("process instance already completed")
 	}
@@ -949,5 +986,35 @@ func (pp *ParsedProcess) IsChildOf(nodeID string, parentID string) bool {
 			return true
 		}
 		curr = p
+	}
+}
+
+func (e *Engine) syncIndex(instance *ProcessInstance) {
+	if e.WasmanEngine == nil {
+		return
+	}
+	store := e.WasmanEngine.Store()
+	if store == nil {
+		return
+	}
+
+	info := map[string]interface{}{
+		"instance_id":    instance.ID,
+		"process_id":     instance.ProcessID,
+		"active_tokens":  instance.ActiveTokens,
+		"waiting_tokens": instance.WaitingTokens,
+		"completed":      instance.Completed,
+		"updated_at":     time.Now().Format(time.RFC3339),
+	}
+
+	infoBytes, err := json.Marshal(info)
+	if err != nil {
+		slog.Error("[BPMN ENGINE] Failed to marshal instance index info", "error", err)
+		return
+	}
+
+	err = store.UpdateActiveIndex(instance.ID, infoBytes, instance.Completed)
+	if err != nil {
+		slog.Error("[BPMN ENGINE] Failed to update active index on store", "error", err)
 	}
 }

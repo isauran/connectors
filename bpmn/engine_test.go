@@ -2,9 +2,13 @@ package bpmn
 
 import (
 	"context"
+	"encoding/json"
 	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/bytecodealliance/wasmtime-go/v20"
+	"github.com/nativebpm/connectors/wasman"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -364,3 +368,98 @@ func TestBPMNServiceTaskLocalHandler(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, instance.Completed)
 }
+
+func TestBPMNEngineActiveIndexSync(t *testing.T) {
+	// 1. Create dummy WASM module
+	wasmBytes, err := wasmtime.Wat2Wasm(`(module)`)
+	require.NoError(t, err)
+
+	tempDir := t.TempDir()
+	wasmPath := filepath.Join(tempDir, "dummy.wasm")
+	err = os.WriteFile(wasmPath, wasmBytes, 0644)
+	require.NoError(t, err)
+
+	// 2. Initialize wasman SnapshotStore and Engine
+	store := &wasman.FileSnapshotStore{Dir: tempDir}
+	wasmanEngine, err := wasman.NewEngine(wasmPath, store)
+	require.NoError(t, err)
+
+	// 3. Initialize bpmn Engine
+	pp, err := ParseBPMN([]byte(waitStateBPMN))
+	require.NoError(t, err)
+
+	engine := NewEngine(pp, wasmanEngine)
+
+	// Helper to load and parse active index
+	loadIndex := func() []map[string]interface{} {
+		data, err := store.LoadActiveIndex()
+		require.NoError(t, err)
+		var list []map[string]interface{}
+		err = json.Unmarshal(data, &list)
+		require.NoError(t, err)
+		return list
+	}
+
+	// 4. StartInstance
+	instance, err := engine.StartInstance("inst-sync-test", nil)
+	require.NoError(t, err)
+
+	// Verify active index contains instance with 'start' active token
+	list := loadIndex()
+	require.Len(t, list, 1)
+	assert.Equal(t, "inst-sync-test", list[0]["instance_id"])
+	assert.False(t, list[0]["completed"].(bool))
+	activeTokens := list[0]["active_tokens"].([]interface{})
+	require.Len(t, activeTokens, 1)
+	assert.Equal(t, "start", activeTokens[0])
+
+	// 5. Step: start -> user_task (active)
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+
+	list = loadIndex()
+	require.Len(t, list, 1)
+	activeTokens = list[0]["active_tokens"].([]interface{})
+	require.Len(t, activeTokens, 1)
+	assert.Equal(t, "user_task", activeTokens[0])
+
+	// 6. Step: user_task -> user_task (waiting)
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+
+	list = loadIndex()
+	require.Len(t, list, 1)
+	activeTokens = list[0]["active_tokens"].([]interface{})
+	assert.Empty(t, activeTokens)
+	waitingTokens := list[0]["waiting_tokens"].([]interface{})
+	require.Len(t, waitingTokens, 1)
+	assert.Equal(t, "user_task", waitingTokens[0])
+
+	// 7. CompleteTask: user_task -> receive_task (active)
+	err = engine.CompleteTask(instance, "user_task", nil)
+	require.NoError(t, err)
+
+	list = loadIndex()
+	require.Len(t, list, 1)
+	activeTokens = list[0]["active_tokens"].([]interface{})
+	require.Len(t, activeTokens, 1)
+	assert.Equal(t, "receive_task", activeTokens[0])
+	waitingTokens = list[0]["waiting_tokens"].([]interface{})
+	assert.Empty(t, waitingTokens)
+
+	// 8. Step: active receive_task -> waiting receive_task
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+
+	// 9. CompleteTask: receive_task -> end (active)
+	err = engine.CompleteTask(instance, "receive_task", nil)
+	require.NoError(t, err)
+
+	// 10. Step: end -> complete (completed = true, index entry must be deleted)
+	err = engine.Step(context.Background(), instance)
+	require.NoError(t, err)
+
+	list = loadIndex()
+	assert.Empty(t, list, "Completed instances must be removed from the active index")
+}
+
