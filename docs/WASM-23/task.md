@@ -1,0 +1,19 @@
+- [x] Инициализировать новый Go-модуль
+    - [x] Создать `connectors/wasman/runner/go.mod`
+    - [x] Обновить `connectors/go.work` (добавить `./wasman/runner`)
+    - [x] Обновить `connectors/wasman/go.mod` (добавить `github.com/nativebpm/connectors/wasman/runner`)
+- [x] Перенести файлы
+    - [x] Перенести `runner.go` -> `connectors/wasman/runner/runner.go` с переименованием пакета
+    - [x] Перенести `runner_stub.go` -> `connectors/wasman/runner/runner_stub.go` с переименованием пакета
+- [x] Обновить импорты в примерах воркеров
+    - [x] Обновить `connectors/wasman/examples/s3-store/worker/main.go`
+    - [x] Обновить `connectors/wasman/examples/camunda/worker/main.go`
+    - [x] Обновить `connectors/wasman/examples/gotenberg-telegram/worker/main.go`
+    - [x] Обновить `connectors/wasman/examples/process-csv/worker/main.go`
+    - [x] Обновить `connectors/wasman/examples/temporal/worker/main.go`
+    - [x] Обновить `connectors/bpmn/examples/orchestration/worker/main.go`
+- [x] Проверить сборку и тесты
+    - [x] Собрать WASM-воркеры (`make -C wasman build-worker`)
+    - [x] Запустить тесты `wasman` (`go test -v ./wasman/...`)
+    - [x] Собрать воркеры в BPMN (`make -C bpmn/examples/orchestration build-worker`)
+    - [x] Запустить тесты `bpmn` (`go test -v ./bpmn/...`)

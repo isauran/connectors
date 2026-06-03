@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/nativebpm/connectors/wasman"
+	"github.com/nativebpm/connectors/wasman/runner"
 )
 
 // Variables represents the schema of input/output variables of the process.
@@ -23,7 +23,7 @@ var state = &State{
 
 //export run
 func run() int32 {
-	return wasman.NewWorkflow().
+	return runner.NewWorkflow().
 		Step(state.loadVariables).
 		Step(state.executeBusinessLogic).
 		Step(state.saveVariables).
@@ -36,7 +36,7 @@ func (s *State) loadVariables() error {
 	println("[WASM WORKER] Step 1: Loading variables from host...")
 	
 	// Decode JSON variables from the host's download stream
-	err := json.NewDecoder(wasman.Reader).Decode(&s.Vars)
+	err := json.NewDecoder(runner.Reader).Decode(&s.Vars)
 	if err != nil {
 		return fmt.Errorf("failed to decode variables: %w", err)
 	}
@@ -75,11 +75,11 @@ func (s *State) saveVariables() error {
 	println("[WASM WORKER] Step 3: Saving updated variables to host...")
 
 	// Encode and stream the updated variables to the host's upload stream
-	err := json.NewEncoder(wasman.Writer).Encode(s.Vars)
+	err := json.NewEncoder(runner.Writer).Encode(s.Vars)
 	if err != nil {
 		return fmt.Errorf("failed to encode variables: %w", err)
 	}
 
 	// Close the writer to signal EOF
-	return wasman.Writer.Close()
+	return runner.Writer.Close()
 }
